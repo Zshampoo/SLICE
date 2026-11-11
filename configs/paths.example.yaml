@@ -1,0 +1,29 @@
+# Copy to paths.yaml and edit. Or set DATA_ROOT and keep the default layout.
+
+data_root: ./data
+
+images:
+  mimic_cxr_jpg: ${data_root}/mimic-cxr-jpg
+
+annotations:
+  object_detector: ${data_root}/annotations/object_detector
+  image_classifier: ${data_root}/annotations/image_classifier
+  transfer: ${data_root}/transfer
+
+weights:
+  chexbert: ${data_root}/weights/chexbert.pth
+  biovil: ${data_root}/weights/biovil
+  bart: facebook/bart-large   # or a local mirror
+
+runs:
+  image_classifier: ${data_root}/runs/image_classifier
+  region_abnormality: ${data_root}/runs/region_abnormality
+  transfer_dst: ${data_root}/runs/transfer_dst
+
+llm:
+  # Never commit real keys. Export instead:
+  #   export OPENAI_API_KEY=...
+  #   export OPENAI_BASE_URL=https://api.openai.com/v1
+  model: gpt-4.1-mini
+  temperature: 0.1
+  max_tokens: 512
