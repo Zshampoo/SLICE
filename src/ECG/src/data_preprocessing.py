@@ -58,7 +58,7 @@ def disease_list_to_prompt(disease_info) -> str:
     """Prompt string ending with a trailing space.
 
     Accepts either:
-      - already-tokenized lists / strings: ['[BLA]', '[POS]', '[NEG]', '[UNC]', ...]
+      - already-tokenized lists / strings: ['[POS]', '[NEG]', ...]
       - polarity lists: [['No Finding','Negative'], ...] (optional score)
     """
     if disease_info is None or (isinstance(disease_info, float) and pd.isna(disease_info)):
@@ -67,7 +67,7 @@ def disease_list_to_prompt(disease_info) -> str:
         s = disease_info.strip()
         if not s:
             return ""
-        # Already "[BLA] [POS] ..." (not a Python list literal).
+        # Already "[POS] [NEG] ..." (not a Python list literal).
         if s.startswith("[") and not (s.startswith("['") or s.startswith('["')):
             return s if s.endswith(" ") else s + " "
         disease_info = ast.literal_eval(s)

@@ -1,6 +1,10 @@
 # SLICE
 
-Sanitized reference implementation accompanying the paper. Pipeline modules:
+Sanitized reference implementation accompanying the paper.
+
+**Task validation.** We validate SLICE on the **Radiology Report Generation (RRG)** task across three datasets (MIMIC-CXR, CheXpert Plus, and ReXGradient), covering disease/region evidence extraction (**SIE**), conflict resolution (**PCR**), prompted LLM refinement (**LRO**), and evidence-guided controllable generation (**ECG**), with **R2Gen** as the default base report generator.
+
+Pipeline modules:
 
 1. **SIE** — Image classifier training / testing  
 2. **SIE** — Anatomical Region abnormality recognition (detector + region CLS) training / testing  
@@ -177,78 +181,77 @@ Place under `$DATA_ROOT` (see `configs/paths.example.yaml`).
 
 ### Dataset statistics & conflict-5 positive rates
 
-<!-- HTML table so dataset names can colspan and Train-SIE / Train-ECG stay on one line -->
 <table>
-  <thead>
-    <tr>
-      <th style="white-space:nowrap; min-width:12em"></th>
-      <th colspan="4" align="center">MIMIC-CXR</th>
-      <th colspan="4" align="center">CheXpert&nbsp;Plus</th>
-      <th colspan="4" align="center">ReXGradient</th>
-    </tr>
-    <tr>
-      <th style="white-space:nowrap; min-width:12em"></th>
-      <th style="white-space:nowrap">Train-SIE</th>
-      <th style="white-space:nowrap">Train-ECG</th>
-      <th style="white-space:nowrap">Val</th>
-      <th style="white-space:nowrap">Test</th>
-      <th style="white-space:nowrap">Train-SIE</th>
-      <th style="white-space:nowrap">Train-ECG</th>
-      <th style="white-space:nowrap">Val</th>
-      <th style="white-space:nowrap">Test</th>
-      <th style="white-space:nowrap">Train-SIE</th>
-      <th style="white-space:nowrap">Train-ECG</th>
-      <th style="white-space:nowrap">Val</th>
-      <th style="white-space:nowrap">Test</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td style="white-space:nowrap"><b># of samples</b></td>
-      <td align="right">111,936</td><td align="right">33,091</td><td align="right">5,958</td><td align="right">8,601</td>
-      <td align="right">33,763</td><td align="right">10,000</td><td align="right">1,778</td><td align="right">2,595</td>
-      <td align="right">83,161</td><td align="right">24,608</td><td align="right">7,684</td><td align="right">7,705</td>
-    </tr>
-    <tr>
-      <td style="white-space:nowrap"><b>Avg. report length</b></td>
-      <td align="right">49.23</td><td align="right">49.09</td><td align="right">48.49</td><td align="right">49.34</td>
-      <td align="right">70.33</td><td align="right">69.63</td><td align="right">70.96</td><td align="right">69.98</td>
-      <td align="right">51.92</td><td align="right">52.04</td><td align="right">50.81</td><td align="right">51.28</td>
-    </tr>
-    <tr>
-      <td colspan="13"><b>Positive-label rate of conflict-5 (%)</b></td>
-    </tr>
-    <tr>
-      <td style="white-space:nowrap">Cardiomegaly (CA)</td>
-      <td align="right">27.74</td><td align="right">27.10</td><td align="right">27.14</td><td align="right">29.03</td>
-      <td align="right">21.88</td><td align="right">21.88</td><td align="right">21.99</td><td align="right">21.89</td>
-      <td align="right">22.66</td><td align="right">23.04</td><td align="right">21.41</td><td align="right">22.28</td>
-    </tr>
-    <tr>
-      <td style="white-space:nowrap">Atelectasis (AT)</td>
-      <td align="right">27.90</td><td align="right">27.35</td><td align="right">27.73</td><td align="right">29.92</td>
-      <td align="right">31.13</td><td align="right">31.11</td><td align="right">31.16</td><td align="right">31.14</td>
-      <td align="right">19.40</td><td align="right">19.21</td><td align="right">18.49</td><td align="right">19.01</td>
-    </tr>
-    <tr>
-      <td style="white-space:nowrap">Edema (ED)</td>
-      <td align="right">13.99</td><td align="right">13.61</td><td align="right">14.62</td><td align="right">14.24</td>
-      <td align="right">28.67</td><td align="right">28.67</td><td align="right">28.63</td><td align="right">28.67</td>
-      <td align="right">10.98</td><td align="right">11.02</td><td align="right">10.09</td><td align="right">11.01</td>
-    </tr>
-    <tr>
-      <td style="white-space:nowrap">Pleural Effusion (PE)</td>
-      <td align="right">23.58</td><td align="right">22.77</td><td align="right">22.91</td><td align="right">25.66</td>
-      <td align="right">47.21</td><td align="right">47.23</td><td align="right">47.19</td><td align="right">47.21</td>
-      <td align="right">12.29</td><td align="right">12.21</td><td align="right">11.26</td><td align="right">11.67</td>
-    </tr>
-    <tr>
-      <td style="white-space:nowrap">Lung Opacity (LO)</td>
-      <td align="right">26.87</td><td align="right">26.52</td><td align="right">26.97</td><td align="right">30.03</td>
-      <td align="right">58.19</td><td align="right">58.19</td><td align="right">58.04</td><td align="right">58.07</td>
-      <td align="right">24.25</td><td align="right">23.47</td><td align="right">22.64</td><td align="right">23.35</td>
-    </tr>
-  </tbody>
+<thead>
+<tr>
+<th></th>
+<th colspan="4" align="center">MIMIC&#8209;CXR</th>
+<th colspan="4" align="center">CheXpert&nbsp;Plus</th>
+<th colspan="4" align="center">ReXGradient</th>
+</tr>
+<tr>
+<th></th>
+<th align="center">Train&#8209;SIE</th>
+<th align="center">Train&#8209;ECG</th>
+<th align="center">Val</th>
+<th align="center">Test</th>
+<th align="center">Train&#8209;SIE</th>
+<th align="center">Train&#8209;ECG</th>
+<th align="center">Val</th>
+<th align="center">Test</th>
+<th align="center">Train&#8209;SIE</th>
+<th align="center">Train&#8209;ECG</th>
+<th align="center">Val</th>
+<th align="center">Test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><b>#&nbsp;of&nbsp;samples</b></td>
+<td align="right">111,936</td><td align="right">33,091</td><td align="right">5,958</td><td align="right">8,601</td>
+<td align="right">33,763</td><td align="right">10,000</td><td align="right">1,778</td><td align="right">2,595</td>
+<td align="right">83,161</td><td align="right">24,608</td><td align="right">7,684</td><td align="right">7,705</td>
+</tr>
+<tr>
+<td><b>Avg.&nbsp;report&nbsp;length</b></td>
+<td align="right">49.23</td><td align="right">49.09</td><td align="right">48.49</td><td align="right">49.34</td>
+<td align="right">70.33</td><td align="right">69.63</td><td align="right">70.96</td><td align="right">69.98</td>
+<td align="right">51.92</td><td align="right">52.04</td><td align="right">50.81</td><td align="right">51.28</td>
+</tr>
+<tr>
+<td colspan="13"><b>Positive&#8209;label&nbsp;rate&nbsp;of&nbsp;conflict&#8209;5&nbsp;(%)</b></td>
+</tr>
+<tr>
+<td>Cardiomegaly&nbsp;(CA)</td>
+<td align="right">27.74</td><td align="right">27.10</td><td align="right">27.14</td><td align="right">29.03</td>
+<td align="right">21.88</td><td align="right">21.88</td><td align="right">21.99</td><td align="right">21.89</td>
+<td align="right">22.66</td><td align="right">23.04</td><td align="right">21.41</td><td align="right">22.28</td>
+</tr>
+<tr>
+<td>Atelectasis&nbsp;(AT)</td>
+<td align="right">27.90</td><td align="right">27.35</td><td align="right">27.73</td><td align="right">29.92</td>
+<td align="right">31.13</td><td align="right">31.11</td><td align="right">31.16</td><td align="right">31.14</td>
+<td align="right">19.40</td><td align="right">19.21</td><td align="right">18.49</td><td align="right">19.01</td>
+</tr>
+<tr>
+<td>Edema&nbsp;(ED)</td>
+<td align="right">13.99</td><td align="right">13.61</td><td align="right">14.62</td><td align="right">14.24</td>
+<td align="right">28.67</td><td align="right">28.67</td><td align="right">28.63</td><td align="right">28.67</td>
+<td align="right">10.98</td><td align="right">11.02</td><td align="right">10.09</td><td align="right">11.01</td>
+</tr>
+<tr>
+<td>Pleural&nbsp;Effusion&nbsp;(PE)</td>
+<td align="right">23.58</td><td align="right">22.77</td><td align="right">22.91</td><td align="right">25.66</td>
+<td align="right">47.21</td><td align="right">47.23</td><td align="right">47.19</td><td align="right">47.21</td>
+<td align="right">12.29</td><td align="right">12.21</td><td align="right">11.26</td><td align="right">11.67</td>
+</tr>
+<tr>
+<td>Lung&nbsp;Opacity&nbsp;(LO)</td>
+<td align="right">26.87</td><td align="right">26.52</td><td align="right">26.97</td><td align="right">30.03</td>
+<td align="right">58.19</td><td align="right">58.19</td><td align="right">58.04</td><td align="right">58.07</td>
+<td align="right">24.25</td><td align="right">23.47</td><td align="right">22.64</td><td align="right">23.35</td>
+</tr>
+</tbody>
 </table>
 
 ### Dataset download / access

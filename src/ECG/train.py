@@ -73,8 +73,8 @@ def main():
 
     use_prompt = getattr(Config, "use_prompt", True)
     if use_prompt:
-        # [UNC] is required by wba prompts (uncertain); [POS]/[NEG]/[BLA] are the requested labels.
-        tokenizer.add_tokens(['[POS]', '[NEG]', '[BLA]', '[UNC]'])
+        # Evidence prompt uses only [POS]/[NEG] polarity tokens ([DEC] is bos if configured separately).
+        tokenizer.add_tokens(['[POS]', '[NEG]'])
         model.resize_token_embeddings(len(tokenizer))
         print("Tokenizing data (with input prompt)...")
         test_ds = preprocess_dataset_winputprompt(test_ds, tokenizer, split="test")

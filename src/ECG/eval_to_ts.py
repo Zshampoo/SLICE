@@ -82,7 +82,7 @@ class TextDataset_PROMPT_prompt_BOS(Dataset):
                 'prompt': prompt_new,
             }
 
-class TextDataset_wchexbertprompt(Dataset):
+class TextDataset_wevidenceprompt(Dataset):
     """Simple text dataset wrapper."""
     def __init__(self, texts, tokenizer, max_length=512, prompt=None):
         self.texts = texts
@@ -227,7 +227,7 @@ def predict_and_save(csv_input_path, csv_output_path, checkpoint_dir, llmpred_co
     print(f"Number of params: {n_parameters}")
     print(f"Number of params: {n_parameters:,} ({n_parameters / 1e6:.2f}M)")
     # tokenizer.add_special_tokens({'bos_token': '[DEC]'})
-    # tokenizer.add_tokens(['[BLA]', '[POS]', '[NEG]', '[UNC]'])
+    # tokenizer.add_tokens(['[POS]', '[NEG]'])
     # model.resize_token_embeddings(len(tokenizer))
     # build dataset / dataloader
     dataset = TextDataset(df[llmpred_col].tolist(), tokenizer)
@@ -306,10 +306,10 @@ def predict_and_save_wevidenceprompt(csv_input_path, csv_output_path, checkpoint
         if t in tokenizer.get_vocab():
             print(f"Token {t} is in the vocabulary.")
     # tokenizer.add_special_tokens({'bos_token': '[DEC]'})
-    # tokenizer.add_tokens(['[BLA]', '[POS]', '[NEG]', '[UNC]'])
+    # tokenizer.add_tokens(['[POS]', '[NEG]'])
     # model.resize_token_embeddings(len(tokenizer))
     # build dataset / dataloader
-    dataset = TextDataset_wchexbertprompt(texts=df[llmpred_col].tolist(),
+    dataset = TextDataset_wevidenceprompt(texts=df[llmpred_col].tolist(),
                           tokenizer=tokenizer,
                           max_length=512,
                           prompt=prompt_all)
