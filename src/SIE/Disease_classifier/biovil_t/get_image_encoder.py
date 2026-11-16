@@ -2,9 +2,9 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from src.SIE.CheXpert_classifier.biovil_t.model import ImageModel
-from src.SIE.CheXpert_classifier.biovil_t.pretrained import JOINT_FEATURE_SIZE, get_biovil_t_image_encoder
-from src.SIE.CheXpert_classifier.biovil_t.types import ImageEncoderType
+from src.SIE.Disease_classifier.biovil_t.model import ImageModel
+from src.SIE.Disease_classifier.biovil_t.pretrained import JOINT_FEATURE_SIZE, get_biovil_t_image_encoder
+from src.SIE.Disease_classifier.biovil_t.types import ImageEncoderType
 
 
 def get_biovil_image_encoder(pretrained: bool = True) -> ImageModel:

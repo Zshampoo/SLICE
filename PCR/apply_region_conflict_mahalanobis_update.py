@@ -82,7 +82,7 @@ def tuple_repr(item: List[Any]) -> str:
 
 
 def format_change_log(old_item: List[Any], new_item: List[Any]) -> str:
-    return f"将{tuple_repr(old_item)}修改为{tuple_repr(new_item)}"
+    return f"changed {tuple_repr(old_item)} to {tuple_repr(new_item)}"
 
 
 def pair_is_consistent(d_item: Optional[List[Any]], r_item: Optional[List[Any]]) -> bool:
@@ -280,32 +280,32 @@ def apply_updates_to_dataframe(
     stats_rows.extend(
         [
             {
-                "metric": "mahalanobis可更新行数",
+                "metric": "mahalanobis_updatable_rows",
                 "category": "rows",
                 "count": int(out[MAHALANOBIS_COLS[0]].notna().sum()),
             },
             {
-                "metric": "原始更新(全量)修改行数",
+                "metric": "raw_update_rows_modified",
                 "category": "rows",
                 "count": int(out[MOD_COL].notna().sum()),
             },
             {
-                "metric": "原始更新(全量)修改元组总数",
+                "metric": "raw_update_tuples_modified",
                 "category": "tuples",
                 "count": full_modified_total,
             },
             {
-                "metric": "原始更新前已满足疾病-区域一致性的元组总数",
+                "metric": "consistent_disease_region_tuples_before_raw_update",
                 "category": "tuples",
                 "count": consistent_tuple_total,
             },
             {
-                "metric": "原始更新涉及的一致元组数",
+                "metric": "consistent_tuples_touched_by_raw_update",
                 "category": "tuples",
                 "count": full_hit_consistent_total,
             },
             {
-                "metric": "原始更新涉及的一致元组占全部一致元组比例(%)",
+                "metric": "pct_consistent_tuples_touched_by_raw_update",
                 "category": "pct",
                 "count": round(
                     full_hit_consistent_total / consistent_tuple_total * 100, 2
@@ -314,17 +314,17 @@ def apply_updates_to_dataframe(
                 else 0.0,
             },
             {
-                "metric": "新逻辑修改行数",
+                "metric": "new_logic_rows_modified",
                 "category": "rows",
                 "count": int(out[MOD_NEW_COL].notna().sum()),
             },
             {
-                "metric": "新逻辑修改元组总数",
+                "metric": "new_logic_tuples_modified",
                 "category": "tuples",
                 "count": new_modified_total,
             },
             {
-                "metric": "新逻辑跳过的一致元组数",
+                "metric": "new_logic_consistent_tuples_skipped",
                 "category": "tuples",
                 "count": skipped_consistent_total,
             },
@@ -334,14 +334,14 @@ def apply_updates_to_dataframe(
     for region in MAHALANOBIS_REGIONS:
         stats_rows.append(
             {
-                "metric": "原始更新前一致元组数(按区域)",
+                "metric": "consistent_tuples_before_raw_update_by_region",
                 "category": region,
                 "count": consistent_by_region[region],
             }
         )
         stats_rows.append(
             {
-                "metric": "原始更新涉及的一致元组数(按区域)",
+                "metric": "consistent_tuples_touched_by_raw_update_by_region",
                 "category": region,
                 "count": full_hit_by_region[region],
             }
@@ -352,7 +352,7 @@ def apply_updates_to_dataframe(
 
 
 def print_stats(stats: pd.DataFrame) -> None:
-    print("\n=== 区域更新统计 ===")
+    print("\n=== Region update statistics ===")
     for _, row in stats.iterrows():
         print(f"  {row['metric']}: {row['count']} ({row['category']})")
 

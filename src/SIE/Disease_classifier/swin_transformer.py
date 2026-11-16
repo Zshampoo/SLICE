@@ -680,7 +680,7 @@ class SwinTransformer(nn.Module):
         if self.is_cam:
             output_tensor = torch.cat(y, dim=0)  # shape: (14, 2)
             pred_scores = F.softmax(output_tensor, dim=1)  # shape: (14, 2)
-            positive_scores = pred_scores[:, 1].unsqueeze(0)  # 提取每个类别正类的概率
+            positive_scores = pred_scores[:, 1].unsqueeze(0)  # positive-class probability per label
             return positive_scores
         elif self.is_extract_features:
             return x

@@ -1,4 +1,4 @@
-"""Shared helpers for knn_norm_101 (未修改) annotation from similarity tables."""
+"""Shared helpers for knn_norm_101 (unmodified) annotation from similarity tables."""
 
 from __future__ import annotations
 

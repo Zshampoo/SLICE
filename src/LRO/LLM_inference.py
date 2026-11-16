@@ -22,14 +22,13 @@ class Refined_Report:
             engine: str = "gpt-4.1-mini",
             temperature: float = 0.1,
             max_tokens: int = 512,
-            type = 'PRED'
+            prompt_type: str = "PRED_NEWPROMPT_DISEASE_REGION",
     ):
         self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-        # self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.engine = engine
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.type = type
+        self.prompt_type = prompt_type
 
     # def _build_prompt(self, global_abnormalities: str, local_abnormalities: str, report: str) -> str:
     #     return f"""
@@ -54,27 +53,9 @@ class Refined_Report:
     # Report to optimize: {report}
     # """
     def _build_prompt(self, global_abnormalities: str, local_abnormalities: str, report: str) -> str:
-
-        # ###### PROMPT ORIGIN ######
-        # return \
-        # f"""
-        # You are an expert in optimizing chest X-ray reports. Your task is to improve the chest X-ray report written by a low-level doctor based on the information provided by the image model.
-        #
-        # You must:
-        # 1. Incorporate the global abnormalities identified by the image model (e.g., atelectasis, cardiomegaly, pleural effusion, and support devices).
-        # 2. Align with the anatomical regions flagged as abnormal (e.g., right lung, left lung, right hemidiaphragm, left hemidiaphragm, and cardiac silhouette).
-        # 3. Ensure the optimized report maintains the style and professionalism of the original report while being more accurate, concise, and logically clear.
-        #
-        # **Do not include any explanation, notes, or additional comments. Only output the optimized chest X-ray report.**
-        #
-        # Global abnormalities: {global_abnormalities}
-        # Local abnormalities: {local_abnormalities}
-        # Report to optimize: {report}
-        #
-        # Output the optimized report only. Do not include anything else.
-        # """
-        if self.type == 'PRED_NEWPROMPT_DISEASE_ONLY':
-            # ###### disease-only (global abnormalities; no region; positive / negative / blank) ######
+        """Build LRO prompt. Order: pred variants first, then label variants."""
+        if self.prompt_type == "PRED_NEWPROMPT_DISEASE_ONLY":
+            # SIE predicted disease info only (with confidence); no region
             return f"""You are an expert in optimizing chest X-ray reports. Your task is to improve the chest X-ray report written by a low-level doctor based on the information provided by the image models.
 You must:
 1. Incorporate the global abnormalities (disease-level information). Each disease is flagged as positive, negative, or blank by the disease classification model, with a model confidence score. Labels are case-insensitive (positive/Positive, negative/Negative, blank/Blank). Example: ['No Finding', 'blank', 0.958421], ['Cardiomegaly', 'positive', 0.842944], ['Consolidation', 'negative', 0.580098], ['Support Devices', 'positive', 0.544037].
@@ -86,134 +67,55 @@ You must:
 4. When multiple diseases are flagged positive, describe each positive disease separately and distinctly; do not merge them into a single vague description. Do not create new descriptions for diseases flagged blank.
 Do not include any explanation, notes, or additional comments. Do not include any description about confidence score in the output text. Only output the optimized chest X-ray report as a senior radiologist.
 Global abnormalities: {global_abnormalities}  Report to optimize: {report}
-Output the optimized report only. Do not include anything else（Also do not use the title like Optimized Chest X-ray Report:, just out put the optimized report only)"""
-        elif self.type == 'PRED_NEWPROMPT_DISEASE_ONLY_WBLA':
-            # ###### disease-only with blank; positive/negative still override the report ######
-            return f"""You are an expert in optimizing chest X-ray reports. Your task is to improve the chest X-ray report written by a low-level doctor based on the information provided by the image models.
-You must:
-1. Incorporate the global abnormalities (disease-level information). Each disease is flagged as positive, negative, or blank by the disease classification model, with a model confidence score (e.g., ['No Finding', 'blank', 0.958421], ['Cardiomegaly', 'positive', 0.842944], ['Consolidation', 'negative', 0.580098], etc.).
-2. Ensure the optimized report maintains the style and professionalism of the original report while being more accurate, concise, and logically clear.
-3. When Global abnormalities conflict with the original report, Global abnormalities take precedence. A blank label does not override the original report.
-  - Positive: For every disease flagged as positive, explicitly describe its presence using standard radiological terminology for that disease, even if subtle or absent from the original report. (e.g., if Lung Opacity is positive, explicitly describe pulmonary opacity even if subtle.)
-  - Negative: For every disease flagged as negative, ensure the final report clearly reflects absence or normality using standard negative phrasing (e.g., "no cardiomegaly"; "cardiomediastinal silhouette is not enlarged" / "within normal limits"). If the original report contains explicit positive mentions, equivocal language, or proxy wording that implies the disease, you must revise or remove such wording so the output is consistent with the negative label. Do not preserve proxy terminology that contradicts the negative label.
-4. Blank: For every disease flagged as blank, the image model did not determine presence or absence. Do not add a new statement that asserts the presence or the absence of that disease. Do not delete, weaken, or reverse an existing mention of that disease in the original report only because its label is blank. Do not write the word "blank" or any confidence score.
-5. When multiple diseases are flagged positive, describe each positive disease separately and distinctly; do not merge them into a single vague description. Do not create new descriptions for diseases flagged blank.
-Do not include any explanation, notes, or additional comments. Do not include any description about confidence score in the output text. Only output the optimized chest X-ray report as a senior radiologist.
-Global abnormalities: {global_abnormalities}  Report to optimize: {report}
-Output the optimized report only. Do not include anything else（Also do not use the title like Optimized Chest X-ray Report:, just out put the optimized report only)"""
-        elif self.type in ('PRED', 'PRED_NEWPROMPT'):
-            # ###### PRED / PRED_NEWPROMPT (bidirectional Positive/Negative) ######
+Output the optimized report only. Do not include anything else (Also do not use the title like Optimized Chest X-ray Report:, just output the optimized report only)"""
+        if self.prompt_type == "PRED_NEWPROMPT_DISEASE_REGION":
+            # SIE predicted disease + region info (with confidence)
             return f"""You are an expert in optimizing chest X-ray reports. Your task is to improve the chest X-ray report written by a low-level doctor based on the information provided by the image models.
 You must:
 1. Incorporate the global abnormalities (disease-level information), where the disease are flagged as positive or negative identified by the disease classification model with model confidence scores provided (e.g., ['No Finding', 'Negative', 0.9852676391601562], ['Enlarged Cardiomediastinum', 'Negative', 0.940338134765625], ['Pneumothorax', 'Positive', 0.9756], ['Pleural Effusion', 'Positive', 0.824], etc.).
 2. Align with the local abnormalities (region-level information), where the anatomical regions are flagged as abnormal or normal identified by the region classification model with confidence scores provided (e.g., ['right lung', 'Abnormal', 0.99025387], ['right upper lung zone', 'Normal', 0.8209005743265152], ['right mid lung zone', 'Abnormal', 0.64220816], ['right lower lung zone', 'Abnormal', 0.92879725], etc.).
 3. Ensure the optimized report maintains the style and professionalism of the original report while being more accurate, concise, and logically clear.
 4. When Global abnormalities conflict with the original report, Global abnormalities take precedence.
-- Positive: For every disease flagged as Positive, explicitly describe its presence using standard radiological terminology for that disease, even if subtle or absent from the original report.（e.g., if Lung Opacity is Positive, explicitly describe pulmonary opacity even if subtle.)
+- Positive: For every disease flagged as Positive, explicitly describe its presence using standard radiological terminology for that disease, even if subtle or absent from the original report. (e.g., if Lung Opacity is Positive, explicitly describe pulmonary opacity even if subtle.)
 - Negative: For every disease flagged as Negative, ensure the final report clearly reflects absence or normality using standard negative phrasing (e.g., "no cardiomegaly"; "cardiomediastinal silhouette is not enlarged" / "within normal limits"). If the original report contains explicit positive mentions, equivocal language, or proxy wording that implies the disease, you must revise or remove such wording so the output is consistent with the Negative label. Do not preserve proxy terminology that contradicts the Negative label.
 5. When multiple diseases are present, describe each positive disease separately and distinctly; do not merge them into a single vague description.
 Do not include any explanation, notes, or additional comments. Do not include any description about confidence score in the output text. Only output the optimized chest X-ray report as a senior radiologist.
 Global abnormalities: {global_abnormalities}  Local abnormalities: {local_abnormalities} Report to optimize: {report}
-Output the optimized report only. Do not include anything else（Also do not use the title like Optimized Chest X-ray Report:, just out put the optimized report only)"""
-        elif self.type == 'LABEL':
-            ###### PROMPT WITH LABEL INFO (bidirectional Positive/Negative precedence) ######
-            return f"""
-You are an expert in optimizing chest X-ray reports. Your task is to improve the chest X-ray report written by a low-level doctor based on the information provided by the image models.
-You must:
-1. Incorporate the global abnormalities (disease-level information), where the disease are flagged as positive or negative (e.g., ['No Finding', 'Negative'], ['Enlarged Cardiomediastinum', 'Negative'], ['Pneumothorax', 'Positive'], ['Pleural Effusion', 'Positive'], etc.).
-2. Align with the local abnormalities (region-level information), where the anatomical regions are flagged as abnormal or normal (e.g., ['right lung', 'Abnormal', ['right upper lung zone', 'Normal'], ['right mid lung zone', 'Abnormal'], ['right lower lung zone', 'Abnormal'], etc.).
-3. Ensure the optimized report maintains the style and professionalism of the original report while being more accurate, concise, and logically clear.
-4. When Global abnormalities conflict with the original report, Global abnormalities take precedence.
-  - Positive: For every disease flagged as Positive, explicitly describe its presence using standard radiological terminology for that disease, even if subtle or absent from the original report.（e.g., if Lung Opacity is Positive, explicitly describe pulmonary opacity even if subtle.)
-  - Negative: For every disease flagged as Negative, ensure the final report clearly reflects absence or normality using standard negative phrasing (e.g., "no cardiomegaly"; "cardiomediastinal silhouette is not enlarged" / "within normal limits"). If the original report contains explicit positive mentions, equivocal language, or proxy wording that implies the disease, you must revise or remove such wording so the output is consistent with the Negative label. Do not preserve proxy terminology that contradicts the Negative label.
-  5. When multiple diseases are present, describe each positive disease separately and distinctly; do not merge them into a single vague description.
-Do not include any explanation, notes, or additional comments. Do not include any description about confidence score in the output text. Only output the optimized chest X-ray report as a senior radiologist.
-Global abnormalities: {global_abnormalities}  Local abnormalities: {local_abnormalities} Report to optimize: {report}
-Output the optimized report only. Do not include anything else（Also do not use the title like Optimized Chest X-ray Report:, just out put the optimized report only)
-"""
-        elif self.type == 'MIX':
-            ###### PROMPT WITH MIX INFO ######
-            return f"""
-            You are an expert in optimizing chest X-ray reports. Your task is to improve the chest X-ray report written by a low-level doctor based on the information provided by the image models.
-
-            You must:
-            1. Incorporate the global abnormalities (disease-level information), where the disease are flagged as positive or negative identified by the disease classification model with model confidence scores provided or not (e.g., ['No Finding', 'Negative', 0.9852676391601562], ['Enlarged Cardiomediastinum', 'Positive', 0.940338134765625], ['Pneumothorax', 'Positive'], ['Pleural Effusion', 'Negative'], etc.).
-            2. Align with the local abnormalities (region-level information), where the anatomical regions are flagged as abnormal or normal identified by the region classification model, with confidence scores provided or not (e.g., ['right lung', 'Abnormal', 0.99025387], ['right upper lung zone', 'Normal', 0.8209005743265152], ['right mid lung zone', 'Abnormal'], ['right lower lung zone', 'Abnormal'], etc.).
-            3. Ensure the optimized report maintains the style and professionalism of the original report while being more accurate, concise, and logically clear.
-
-            **Do not include any explanation, notes, or additional comments. Do not include any description about confidence score in the output text. Only output the optimized chest X-ray report as a senior radiologist.**
-
-            Global abnormalities: {global_abnormalities}
-            Local abnormalities: {local_abnormalities}
-            Report to optimize: {report}
-
-            Output the optimized report only. Do not include anything else（Also do not use the title like **Optimized Chest X-ray Report:**, just out put the optimized report only)
-            """
-        elif self.type == 'Glabel_only':
-            ###### PROMPT WITH label INFO ######
-            return f"""
-                You are an expert in optimizing chest X-ray reports. Your task is to improve the chest X-ray report written by a low-level doctor based on the information provided by the image models.
-    
-                You must:
-                1. Incorporate the global abnormalities (disease-level information), where the disease are flagged as positive or negative (e.g., ['No Finding', 'Negative'], ['Enlarged Cardiomediastinum', 'Negative'], ['Pneumothorax', 'Positive'], ['Pleural Effusion', 'Positive'], etc.).
-                2. Ensure the optimized report maintains the style and professionalism of the original report while being more accurate, concise, and logically clear.
-    
-                **Do not include any explanation, notes, or additional comments. Do not include any description about confidence score in the output text. Only output the optimized chest X-ray report as a senior radiologist.**
-    
-                Global abnormalities: {global_abnormalities}
-                Report to optimize: {report}
-    
-                Output the optimized report only. Do not include anything else（Also do not use the title like **Optimized Chest X-ray Report:**, just out put the optimized report only)
-                """
-        elif self.type == 'Gpred_only':
-            ###### PROMPT WITH pred INFO ######
-            return f"""
-                     You are an expert in optimizing chest X-ray reports. Your task is to improve the chest X-ray report written by a low-level doctor based on the information provided by the image models.
-                    You must:
-                    1. Incorporate the global abnormalities (disease-level information), where the disease are flagged as positive or negative identified by the disease classification model with model confidence scores provided (e.g., ['No Finding', 'Negative', 0.9852676391601562], ['Enlarged Cardiomediastinum', 'Negative', 0.940338134765625], etc.).
-                    2. Ensure the optimized report maintains the style and professionalism of the original report while being more accurate, concise, and logically clear.
-            
-                    **Do not include any explanation, notes, or additional comments. Do not include any description about confidence score in the output text. Only output the optimized chest X-ray report as a senior radiologist.**
-            
-                    Global abnormalities: {global_abnormalities}
-                    Report to optimize: {report}
-            
-                    Output the optimized report only. Do not include anything else（Also do not use the title like **Optimized Chest X-ray Report:**, just out put the optimized report only)
-            """
-        elif self.type == 'LABEL_NEWPROMPT_DISEASE_ONLY':
+Output the optimized report only. Do not include anything else (Also do not use the title like Optimized Chest X-ray Report:, just output the optimized report only)"""
+        if self.prompt_type == "LABEL_NEWPROMPT_DISEASE_ONLY":
+            # Ground-truth disease labels only (no confidence / no region)
             return f"""You are an expert in optimizing chest X-ray reports. Your task is to improve the chest X-ray report written by a low-level doctor based on the information provided by the image models.
 You must:
 1. Incorporate the global abnormalities (disease-level information), where the disease are flagged as positive or negative (e.g., ['No Finding', 'Negative'], ['Enlarged Cardiomediastinum', 'Negative'], ['Pneumothorax', 'Positive'], ['Pleural Effusion', 'Positive'], etc.).
 2. Ensure the optimized report maintains the style and professionalism of the original report while being more accurate, concise, and logically clear.
 3. When Global abnormalities conflict with the original report, Global abnormalities take precedence.
-  - Positive: For every disease flagged as Positive, explicitly describe its presence using standard radiological terminology for that disease, even if subtle or absent from the original report.（e.g., if Lung Opacity is Positive, explicitly describe pulmonary opacity even if subtle.)
+  - Positive: For every disease flagged as Positive, explicitly describe its presence using standard radiological terminology for that disease, even if subtle or absent from the original report. (e.g., if Lung Opacity is Positive, explicitly describe pulmonary opacity even if subtle.)
   - Negative: For every disease flagged as Negative, ensure the final report clearly reflects absence or normality using standard negative phrasing (e.g., "no cardiomegaly"; "cardiomediastinal silhouette is not enlarged" / "within normal limits"). If the original report contains explicit positive mentions, equivocal language, or proxy wording that implies the disease, you must revise or remove such wording so the output is consistent with the Negative label. Do not preserve proxy terminology that contradicts the Negative label.
 4. When multiple diseases are present, describe each positive disease separately and distinctly; do not merge them into a single vague description.
 Do not include any explanation, notes, or additional comments. Only output the optimized chest X-ray report as a senior radiologist.
 Global abnormalities: {global_abnormalities}  Report to optimize: {report}
-Output the optimized report only. Do not include anything else（Also do not use the title like Optimized Chest X-ray Report:, just out put the optimized report only)"""
-            # return f"""
-            #             You are an expert in optimizing chest X-ray reports. Your task is to improve the chest X-ray report written by a low-level doctor based on the information provided by the image models and experts.
-            #
-            #             You must:
-            #             1. Incorporate the global abnormalities (disease-level information), where the disease are flagged as positive or negative, and those with confidence scores are identified by the disease classification model, while the remaining ones without confidence scores are idetified by the experts (e.g., ['No Finding', 'Negative', 0.9852676391601562], ['Enlarged Cardiomediastinum', 'Positive', 0.940338134765625], ['Pneumothorax', 'Positive'], ['Pleural Effusion', 'Negative'], etc.).
-            #             2. Align with the local abnormalities (region-level information), where the anatomical regions are flagged as abnormal or normal, and those with confidence scores are identified by the region classification model, while the remaining ones without confidence scores are idetified by the experts (e.g., ['right lung', 'Abnormal', 0.99025387], ['right upper lung zone', 'Normal', 0.8209005743265152], ['right mid lung zone', 'Abnormal'], ['right lower lung zone', 'Abnormal'], etc.).
-            #             3. Ensure the optimized report maintains the style and professionalism of the original report while being more accurate, concise, and logically clear.
-            #
-            #             **Do not include any explanation, notes, or additional comments. Do not include any description about confidence score in the output text. Only output the optimized chest X-ray report as a senior radiologist.**
-            #
-            #             Global abnormalities: {global_abnormalities}
-            #             Local abnormalities: {local_abnormalities}
-            #             Report to optimize: {report}
-            #
-            #             Output the optimized report only. Do not include anything else（Also do not use the title like **Optimized Chest X-ray Report:**, just out put the optimized report only)
-            #             """
-        else:
-            print(f'Invalid report type {self.type}')
+Output the optimized report only. Do not include anything else (Also do not use the title like Optimized Chest X-ray Report:, just output the optimized report only)"""
+        if self.prompt_type == "LABEL_NEWPROMPT_DISEASE_REGION":
+            # Ground-truth disease + region labels (no confidence)
+            return f"""
+You are an expert in optimizing chest X-ray reports. Your task is to improve the chest X-ray report written by a low-level doctor based on the information provided by the image models.
+You must:
+1. Incorporate the global abnormalities (disease-level information), where the disease are flagged as positive or negative (e.g., ['No Finding', 'Negative'], ['Enlarged Cardiomediastinum', 'Negative'], ['Pneumothorax', 'Positive'], ['Pleural Effusion', 'Positive'], etc.).
+2. Align with the local abnormalities (region-level information), where the anatomical regions are flagged as abnormal or normal (e.g., ['right lung', 'Abnormal'], ['right upper lung zone', 'Normal'], ['right mid lung zone', 'Abnormal'], ['right lower lung zone', 'Abnormal'], etc.).
+3. Ensure the optimized report maintains the style and professionalism of the original report while being more accurate, concise, and logically clear.
+4. When Global abnormalities conflict with the original report, Global abnormalities take precedence.
+  - Positive: For every disease flagged as Positive, explicitly describe its presence using standard radiological terminology for that disease, even if subtle or absent from the original report. (e.g., if Lung Opacity is Positive, explicitly describe pulmonary opacity even if subtle.)
+  - Negative: For every disease flagged as Negative, ensure the final report clearly reflects absence or normality using standard negative phrasing (e.g., "no cardiomegaly"; "cardiomediastinal silhouette is not enlarged" / "within normal limits"). If the original report contains explicit positive mentions, equivocal language, or proxy wording that implies the disease, you must revise or remove such wording so the output is consistent with the Negative label. Do not preserve proxy terminology that contradicts the Negative label.
+5. When multiple diseases are present, describe each positive disease separately and distinctly; do not merge them into a single vague description.
+Do not include any explanation, notes, or additional comments. Do not include any description about confidence score in the output text. Only output the optimized chest X-ray report as a senior radiologist.
+Global abnormalities: {global_abnormalities}  Local abnormalities: {local_abnormalities} Report to optimize: {report}
+Output the optimized report only. Do not include anything else (Also do not use the title like Optimized Chest X-ray Report:, just output the optimized report only)
+"""
+        raise ValueError(f"Invalid prompt_type {self.prompt_type}")
 
     def _parse_output(self, text: str) -> Optional[List[str]]:
         try:
-            # 👇 清除Markdown代码块包装
+            # Strip Markdown code-fence wrappers
             text = re.sub(r"```(?:python)?", "", text).strip("` \n")
             result = text.strip()
             # print(result)
@@ -273,7 +175,7 @@ Output the optimized report only. Do not include anything else（Also do not use
         reports_text = "\n".join(report_blocks)
         json_schema = ",\n".join(f'  {k}: "<optimized report for this method only>"' for k in json_keys)
 
-        if self.type == "PRED":
+        if self.prompt_type == "PRED_NEWPROMPT_DISEASE_REGION":
             return f"""
 You are an expert in optimizing chest X-ray reports. Your task is to improve chest X-ray reports written by low-level doctors based on the information provided by the image models.
 
@@ -310,7 +212,7 @@ Return ONLY valid JSON (no markdown, no explanation) with exactly these keys:
 
 Do not include any explanation, notes, or additional comments. Do not include any description about confidence score in the output text. Do not use titles like "Optimized Chest X-ray Report". Only output the optimized reports in the JSON object above.
 """
-        raise ValueError(f"Multi-baseline prompt not implemented for type={self.type}")
+        raise ValueError(f"Multi-baseline prompt not implemented for prompt_type={self.prompt_type}")
 
     def _parse_multi_output(
         self,
@@ -410,7 +312,7 @@ async def process_csv_async_multi_baseline(
     local_column: str = "pred_region_info_15w_knn_new_region_conflicts_knn",
     batch_size: int = 20,
     sample_len: Optional[int] = None,
-    type: str = "PRED",
+    prompt_type: str = "PRED_NEWPROMPT_DISEASE_REGION",
     proxy: Optional[str] = None,
     path_column: str = "id",
     filter_column: Optional[str] = "need_regenerate_report",
@@ -423,7 +325,7 @@ async def process_csv_async_multi_baseline(
     report_columns = [f"{report_prefix}{m}" for m in methods]
 
     extractor = Refined_Report(
-        api_key=api_key, base_url=base_url, engine=model, max_tokens=512, type=type
+        api_key=api_key, base_url=base_url, engine=model, max_tokens=512, prompt_type=prompt_type
     )
     if proxy:
         timeout = httpx.Timeout(120.0, connect=30.0)
@@ -450,10 +352,10 @@ async def process_csv_async_multi_baseline(
 
     if filter_column is not None:
         mask = df_all[filter_column].astype(str).str.lower().isin(
-            {"true", "1", "需要", "yes"}
+            {"true", "1", "yes", "need"}
         ) | (df_all[filter_column] == True)
         df_all = df_all.loc[mask].copy()
-        print(f"Filter {filter_column}=True/需要: {len(df_all)} rows")
+        print(f"Filter {filter_column}=True/yes: {len(df_all)} rows")
 
     for col in report_columns + [global_column, local_column]:
         if col not in df_all.columns:
@@ -586,14 +488,14 @@ async def process_csv_async(
         result_column: str = "gpt",
         batch_size: int = 10,
         sample_len = None,
-        type = 'PRED',
+        prompt_type: str = "PRED_NEWPROMPT_DISEASE_REGION",
         proxy: Optional[str] = None,
         sheet_name: Optional[str] = None,
         path_column: str = "Path",
 ):
     import httpx
 
-    extractor = Refined_Report(api_key=api_key, base_url=base_url, engine=model, max_tokens=512, type=type)
+    extractor = Refined_Report(api_key=api_key, base_url=base_url, engine=model, max_tokens=512, prompt_type=prompt_type)
     if proxy:
         timeout = httpx.Timeout(120.0, connect=30.0)
         extractor.client = AsyncOpenAI(
@@ -619,7 +521,7 @@ async def process_csv_async(
         else:
             raise KeyError(f"Missing path column in {input_csv}")
 
-    # 若output文件存在（即之前生成过），则读取df中结果不为na的元组
+    # Resume from existing output: keep rows whose result is still NA
 
     output_dir = os.path.dirname(output_csv) or "."
     os.makedirs(output_dir, exist_ok=True)
@@ -632,15 +534,15 @@ async def process_csv_async(
             df[result_column].astype(str).str.strip().isin(("", "nan", "None"))
         )]
         df_new = missing_rows.copy()
-        print(f'FIle {output_csv} 已存在，其中未生成元组有{len(missing_rows)}个')
+        print(f'File {output_csv} exists; {len(missing_rows)} rows still missing results')
     else:
         if sample_len is not None:
             df = df.head(sample_len).copy()
         df_new = df.copy()
         if result_column not in df.columns:
             df[result_column] = pd.NA
-        print(f'input {input_csv} 包含 {len(df)}个元组 (sample_len={sample_len})')
-    # df = df[df['available'] == 'yes'] # available 指元组至少在一个标签上为1
+        print(f'input {input_csv} has {len(df)} rows (sample_len={sample_len})')
+    # df = df[df['available'] == 'yes']  # rows with at least one positive label
     # df = df[df['gpt_output_label'] == 'BLANK']
     # df[report_column] = df[report_column].apply(ast.literal_eval)
     if global_column is not None:
@@ -674,7 +576,7 @@ async def process_csv_async(
 
         start_time = time.time()
         try:
-            # 批量提取优化报告
+            # Batch-extract refined reports
             batch_results = await extractor.abatch_extract(batch_globals, batch_locals, batch_reports)
         except Exception as e:
             print(f"❌ Batch {i} failed: {e}")
@@ -830,9 +732,132 @@ def info_merge():
     df.insert(1, 'label_disease', label_disease)
     df.to_csv(str(Path(__import__('os').environ.get('DATA_ROOT', './data'))))
 
+
+# CheXbert / disease-CLS id order used by SIE Disease_classifier
+DISEASE_NAMES_14 = [
+    "Enlarged Cardiomediastinum",
+    "Cardiomegaly",
+    "Lung Opacity",
+    "Lung Lesion",
+    "Edema",
+    "Consolidation",
+    "Pneumonia",
+    "Atelectasis",
+    "Pneumothorax",
+    "Pleural Effusion",
+    "Pleural Other",
+    "Fracture",
+    "Support Devices",
+    "No Finding",
+]
+
+# Miura-style / U-Ones mapping for 4-way CheXbert heads:
+# 0 blank/NaN, 1 positive, 2 negative, 3 uncertain -> uncertain treated as positive
+_DISEASE_ID_TO_PRED = {0: "blank", 1: "Positive", 2: "Negative", 3: "Positive"}
+_DISEASE_ID_TO_LABEL = {0: "Negative", 1: "Positive", 2: "Negative", 3: "Positive"}
+
+
+def Textualization(
+    disease_preds,
+    region_preds=None,
+    *,
+    source: str = "pred",
+    disease_names=None,
+    region_names=None,
+):
+    """Convert SIE outputs to LRO `(global_column, local_column)` tuples.
+
+    Args:
+        disease_preds: per-disease class ids (len 14) or already-named triples/pairs.
+            - pred source: class id in {0,1,2,3} or (name, status[, confidence])
+            - label source: binary / class id or (name, status)
+        region_preds: per-region scores or (name, status[, confidence]).
+            Optional for DISEASE_ONLY prompts; pass None to return local=None.
+        source: "pred" uses SIE predictions (include confidence when available);
+                "label" uses ground-truth (no confidence).
+        disease_names / region_names: optional name lists aligned with vector inputs.
+
+    Returns:
+        (global_tuples, local_tuples)
+        global: [[disease, status(, confidence)], ...]
+        local:  [[region, Abnormal|Normal(, confidence)], ...] or None
+    """
+    names = list(disease_names or DISEASE_NAMES_14)
+    src = source.lower().strip()
+    if src not in {"pred", "label"}:
+        raise ValueError("source must be 'pred' or 'label'")
+
+    global_out = []
+    # Already textualized list of lists/tuples
+    if disease_preds is not None and len(disease_preds) > 0 and not isinstance(disease_preds[0], (int, float)):
+        for item in disease_preds:
+            item = list(item)
+            name = item[0]
+            status = item[1]
+            if src == "pred":
+                if len(item) >= 3:
+                    global_out.append([name, status, float(item[2])])
+                else:
+                    global_out.append([name, status])
+            else:
+                global_out.append([name, status])
+    else:
+        id_map = _DISEASE_ID_TO_PRED if src == "pred" else _DISEASE_ID_TO_LABEL
+        confs = None
+        vec = disease_preds
+        # Optional (class_ids, confidences)
+        if isinstance(disease_preds, tuple) and len(disease_preds) == 2:
+            vec, confs = disease_preds
+        for i, name in enumerate(names):
+            cid = int(vec[i])
+            status = id_map.get(cid, "Negative")
+            if src == "pred" and confs is not None:
+                global_out.append([name, status, float(confs[i])])
+            else:
+                global_out.append([name, status])
+
+    local_out = None
+    if region_preds is not None:
+        local_out = []
+        if len(region_preds) > 0 and not isinstance(region_preds[0], (int, float, bool)):
+            for item in region_preds:
+                item = list(item)
+                if src == "pred" and len(item) >= 3:
+                    local_out.append([item[0], item[1], float(item[2])])
+                else:
+                    local_out.append([item[0], item[1]])
+        else:
+            rnames = list(region_names) if region_names is not None else [f"region_{i}" for i in range(len(region_preds))]
+            confs = None
+            vec = region_preds
+            if isinstance(region_preds, tuple) and len(region_preds) == 2:
+                vec, confs = region_preds
+            for i, name in enumerate(rnames):
+                v = vec[i]
+                # bool / {0,1} / probability
+                if isinstance(v, bool):
+                    abnormal = v
+                    conf = float(v)
+                else:
+                    fv = float(v)
+                    if 0.0 <= fv <= 1.0 and not float(fv).is_integer():
+                        abnormal = fv >= 0.5
+                        conf = fv if abnormal else 1.0 - fv
+                    else:
+                        abnormal = int(fv) == 1
+                        conf = float(confs[i]) if confs is not None else (1.0 if abnormal else 1.0)
+                status = "Abnormal" if abnormal else "Normal"
+                if src == "pred":
+                    local_out.append([name, status, float(conf if confs is None else confs[i])])
+                else:
+                    local_out.append([name, status])
+
+    return global_out, local_out
+
+
 def translate_en_to_zh(text):
     translated = GoogleTranslator(source='en', target='zh-CN').translate(text)
-    print("翻译：", translated)
+    print("translated:", translated)
     return translated
 
 if __name__ == "__main__":
@@ -846,6 +871,17 @@ if __name__ == "__main__":
     parser.add_argument("--local_column", default="pred_region_info_15w")
     parser.add_argument("--result_column", default="llm_report")
     parser.add_argument("--batch_size", type=int, default=10)
+    parser.add_argument(
+        "--prompt_type",
+        default="PRED_NEWPROMPT_DISEASE_REGION",
+        choices=[
+            "PRED_NEWPROMPT_DISEASE_ONLY",
+            "PRED_NEWPROMPT_DISEASE_REGION",
+            "LABEL_NEWPROMPT_DISEASE_ONLY",
+            "LABEL_NEWPROMPT_DISEASE_REGION",
+        ],
+        help="LRO prompt variant (default: PRED_NEWPROMPT_DISEASE_REGION)",
+    )
     parser.add_argument("--model", default=os.environ.get("LLM_MODEL", "gpt-4.1-mini"))
     parser.add_argument(
         "--base_url",
@@ -869,6 +905,7 @@ if __name__ == "__main__":
             global_column=args.global_column,
             local_column=args.local_column,
             result_column=args.result_column,
+            prompt_type=args.prompt_type,
         )
     )
 

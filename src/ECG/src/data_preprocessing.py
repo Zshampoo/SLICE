@@ -196,7 +196,7 @@ def preprocess_dataset_woutputprompt(dataset, tokenizer: BartTokenizer, is_mask=
             max_length=Config.max_input_length,
             truncation=True,
         )
-        # 构造prompt
+        # build prompt
         labels = [example[col] for col in label_cols]
         prompt = ''
         prompt = [SCORES_NP[l] for l in labels]
@@ -214,7 +214,7 @@ def preprocess_dataset_woutputprompt(dataset, tokenizer: BartTokenizer, is_mask=
         target_encoding["input_ids"][0] = tokenizer.bos_token_id
         labels = target_encoding["input_ids"]
 
-        if is_mask: # 把prompt部分用-100掩码（忽略loss）
+        if is_mask:  # mask prompt tokens with -100 (ignored in loss)
             for i in range(prompt_len):
                 if i < len(labels):
                     labels[i] = -100
@@ -295,32 +295,32 @@ def preprocess_dataset_winputprompt(dataset, tokenizer: BartTokenizer, split: st
 
 def preprocess_dataset_w_bartdecoderinput(dataset, tokenizer: BartTokenizer):
     def tokenize_fn(example):
-        # 1️⃣ 编码源文本（BART 的 encoder 输入）
+        # 1) encode source text (BART encoder input)
         source_encoding = tokenizer(
             example["gpt_output_label_clean"],
             max_length=Config.max_input_length,
             truncation=True,
         )
 
-        # 2️⃣ 构造 decoder 的输入文本（prompt + report）
+        # 2) build decoder input text (prompt + report)
         labels_raw = [example[col] for col in label_cols]  # e.g. ["cardiomegaly", "effusion"]
-        prompt_text = ' '.join([SCORES_NP[lbl] for lbl in labels_raw]) + ' '  # 例如 "[POS] [NEG] [NEG] ... "
+        prompt_text = ' '.join([SCORES_NP[lbl] for lbl in labels_raw]) + ' '  # e.g. "[POS] [NEG] [NEG] ..."
         report_text = example["gt_report_clean"]
         decoder_text = prompt_text + report_text
 
-        ## 尝试1-在前缀后报告前加入bos token
+        ## attempt 1: insert bos between prompt and report
         decoder_encoding = tokenizer(
             decoder_text,
             max_length=Config.max_target_length,
             truncation=True,
-            add_special_tokens=False  # 第一位不再加bos token，而是放在prompt和report之间
+            add_special_tokens=False  # do not prepend bos; place it between prompt and report
         )
 
         decoder_input_ids = decoder_encoding["input_ids"]
 
         prompt_len = len(tokenizer(prompt_text, add_special_tokens=False).input_ids)  # 14
 
-        # 4️⃣ 构造 labels（前 prompt_len 个位置设为 -100，padding 后也设为 -100）
+        # 4) build labels (first prompt_len positions and padding -> -100)
         labels = []
         for i, token_id in enumerate(decoder_input_ids):
             if i < prompt_len:
@@ -330,11 +330,11 @@ def preprocess_dataset_w_bartdecoderinput(dataset, tokenizer: BartTokenizer):
 
         decoder_input_ids_shifted = []
         for i in range(len(labels)):
-            if i < prompt_len:  # 0-13位的prompt不变
+            if i < prompt_len:  # keep prompt positions
                 decoder_input_ids_shifted.append(decoder_input_ids[i])
-            elif i==prompt_len: # 14位插入bos
+            elif i == prompt_len:  # insert bos here
                 decoder_input_ids_shifted.append(tokenizer.bos_token_id)
-            else: # 15位开始右移
+            else:  # shift report tokens right
                 decoder_input_ids_shifted.append(decoder_input_ids[i-1])
 
         return {

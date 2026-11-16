@@ -193,23 +193,23 @@ def apply_status_replace(
     """Return (info, note, did_change). kind in {'disease','region'}."""
     idx = find_idx(info, name)
     if idx < 0:
-        return info, f"{name}未在原信息中出现，无法替换", False
+        return info, f"{name} not found in original info; cannot replace", False
     old_item = list(info[idx])
     if kind == "disease":
         old_s, to_lab, norm_fn = norm_dis(old_item[1]), dis_label, norm_dis
     else:
         old_s, to_lab, norm_fn = norm_reg(old_item[1]), reg_label, norm_reg
     if new_status is None:
-        return info, f"缺少knn预测，保留原信息：{list_repr(old_item)}", False
+        return info, f"missing knn prediction; keep original: {list_repr(old_item)}", False
     if old_s == new_status:
         return (
             info,
-            f"信息一致，保留原有带置信度的信息：{list_repr(old_item)}",
+            f"info consistent; keep original with confidence: {list_repr(old_item)}",
             False,
         )
     new_item = [name, to_lab(new_status)]
     info[idx] = new_item
-    return info, f"把{list_repr(old_item)}改成了{list_repr(new_item)}", True
+    return info, f"replaced {list_repr(old_item)} with {list_repr(new_item)}", True
 
 
 def process_sheet(df: pd.DataFrame) -> pd.DataFrame:
@@ -283,7 +283,7 @@ def process_sheet(df: pd.DataFrame) -> pd.DataFrame:
                 wnote_col = f"conflict5_wregion_note_region_{slug_region(rname)}"
                 if rname in touched:
                     note_cols[wnote_col][pos] = (
-                        f"跳过：已在conflict5中处理过{rname}，不推翻1）的结果"
+                        f"skip: {rname} already handled in conflict5; do not override step-1 result"
                     )
                     continue
                 reg_w_info, rnote, _ = apply_status_replace(
@@ -337,8 +337,8 @@ def main() -> None:
         dslug = slug_disease(spec["disease"])
         col = f"conflict5_note_disease_{dslug}"
         vc = s1n[col].dropna().astype(str)
-        n_rep = int(vc.str.startswith("把").sum())
-        n_keep = int(vc.str.startswith("信息一致").sum())
+        n_rep = int(vc.str.startswith("replaced ").sum())
+        n_keep = int(vc.str.startswith("info consistent").sum())
         print(f"  disease {spec['disease']}: replace={n_rep} keep={n_keep} notes={vc.shape[0]}")
     for rname in sorted(
         {
@@ -349,15 +349,15 @@ def main() -> None:
     ):
         col = f"conflict5_note_region_{slug_region(rname)}"
         vc = s1n[col].dropna().astype(str)
-        n_rep = int(vc.str.startswith("把").sum())
-        n_keep = int(vc.str.startswith("信息一致").sum())
+        n_rep = int(vc.str.startswith("replaced ").sum())
+        n_keep = int(vc.str.startswith("info consistent").sum())
         print(f"  region {rname}: replace={n_rep} keep={n_keep} notes={vc.shape[0]}")
     for rname in ("mediastinum", "cardiac silhouette", "upper mediastinum", "aortic arch"):
         col = f"conflict5_wregion_note_region_{slug_region(rname)}"
         vc = s1n[col].dropna().astype(str)
-        n_rep = int(vc.str.startswith("把").sum())
-        n_skip = int(vc.str.startswith("跳过").sum())
-        n_keep = int(vc.str.startswith("信息一致").sum())
+        n_rep = int(vc.str.startswith("replaced ").sum())
+        n_skip = int(vc.str.startswith("skip:").sum())
+        n_keep = int(vc.str.startswith("info consistent").sum())
         print(
             f"  wregion {rname}: replace={n_rep} keep={n_keep} skip={n_skip} notes={vc.shape[0]}"
         )

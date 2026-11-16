@@ -174,7 +174,7 @@ class Chexpert_Dataset(Dataset):
             image_path = os.path.join(self.root_dir, pathstr)
         else:
             image_path = ann['mimic_image_file_path']  # MIMIC path
-        # image = self.load_image(Path(image_path)) # 报错
+        # image = self.load_image(Path(image_path))  # previously raised
 
         image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
         # img_pil = Image.fromarray(image)
@@ -340,7 +340,7 @@ class Chexpert_Dataset_test(Dataset):
 
         image_path = self.get_imagepath_from_chexpertplus(ann) # chexpertplus
 
-        # image = self.load_image(Path(image_path)) # 报错
+        # image = self.load_image(Path(image_path))  # previously raised
 
         image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED) # mimic
 
@@ -691,7 +691,7 @@ class Chexpert_5_200_testset(Dataset):
 
         image_path = ann['Path']
 
-        # image = self.load_image(Path(image_path)) # 报错
+        # image = self.load_image(Path(image_path))  # previously raised
 
         image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
         # img_pil = Image.fromarray(image)

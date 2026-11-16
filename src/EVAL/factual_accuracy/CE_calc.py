@@ -672,42 +672,42 @@ def write_scores(path, language_model_scores):
                         f.write(f"CE/{k}:{v}\n")
             else:
                 f.write(f"language_model/{metric}:{score}\n")
-        # 调序
+        # reorder
 
 # def translate_en_to_zh(text):
 #     translated = GoogleTranslator(source='en', target='zh-CN').translate(text)
-#     # print("翻译：", translated)
+#     # print("translated:", translated)
 #     return translated
 
 
 def translate_en_to_zh(text, max_retries=3, delay=2, print_result=False):
     """
-    使用 GoogleTranslator 进行英文到中文的翻译，支持失败重试。
+    Translate English to Chinese with GoogleTranslator; retry on failure.
 
-    参数：
-        text (str): 要翻译的英文文本
-        max_retries (int): 最大重试次数
-        delay (int): 每次重试之间的秒数
-        print_result (bool): 是否打印翻译结果
-    返回：
-        str: 翻译后的中文，或 "[翻译失败]"
+    Args:
+        text (str): English text to translate
+        max_retries (int): max retry count
+        delay (int): seconds between retries
+        print_result (bool): whether to print the translation
+    Returns:
+        str: translated Chinese, or "[translation_failed]"
     """
     for attempt in range(1, max_retries + 1):
         try:
             translated = GoogleTranslator(source='en', target='zh-CN').translate(text)
             if print_result:
-                print(f"翻译成功：{translated}")
+                print(f"translation ok: {translated}")
             return translated
         except Exception as e:
-            print(f"翻译失败，第 {attempt} 次尝试，错误信息：{e}")
+            print(f"translation failed, attempt {attempt}, error: {e}")
             if attempt < max_retries:
                 time.sleep(delay)
             else:
-                return "[翻译失败]"
+                return "[translation_failed]"
 
 def translate_en_to_zh_baidu(text, appid = '20250511002354644', secret_key = 'Tuyf1drc58j6lcnaIO7S', print_result=True, retry=3, sleep=1):
     """
-    使用百度翻译 API，将英文翻译为中文。
+    Translate English to Chinese via Baidu Translate API.
     """
     url = "https://fanyi-api.baidu.com/api/trans/vip/translate"
     salt = str(random.randint(10000, 99999))
@@ -729,19 +729,19 @@ def translate_en_to_zh_baidu(text, appid = '20250511002354644', secret_key = 'Tu
             if 'trans_result' in result:
                 translated = result['trans_result'][0]['dst']
                 if print_result:
-                    print(f"翻译：{translated}")
+                    print(f"translated:{translated}")
                 return translated
             else:
-                print(f"翻译失败：{result}")
-                return "[翻译失败]"
+                print(f"translation failed: {result}")
+                return "[translation_failed]"
         except Exception as e:
-            print(f"网络错误，第 {attempt+1} 次尝试失败：{e}")
+            print(f"network error, attempt {attempt+1} failed: {e}")
             time.sleep(sleep)
-    return "[网络错误]"
+    return "[network_error]"
 
 
 def split_sentences(text):
-    # 按句号分割并清理
+    # split on periods and clean
     sentences = [s.strip() for s in text.split('.') if s.strip()]
     return sentences
 
@@ -756,7 +756,7 @@ def fuzzy_match(s1_list, s2_list, threshold=0.85):
                 continue
             ratio = difflib.SequenceMatcher(None, s1, s2).ratio()
             if ratio >= threshold:
-                common.append(s1 if len(s1) < len(s2) else s2)  # 取较短那个
+                common.append(s1 if len(s1) < len(s2) else s2)  # keep the shorter one
                 matched_s1.add(i)
                 matched_s2.add(j)
                 break
@@ -769,12 +769,12 @@ def process_strings(text1, text2, threshold=0.85):
 
     matched1_idx, matched2_idx, common = fuzzy_match(sents1, sents2, threshold)
 
-    # 保留未匹配的句子并拼接成新字符串
+    # keep unmatched sentences and concatenate
     processed1 = '. '.join([sents1[i] for i in range(len(sents1)) if i not in matched1_idx])
     processed2 = '. '.join([sents2[i] for i in range(len(sents2)) if i not in matched2_idx])
     common_str = '. '.join(common)
 
-    # 如果原始字符串有句号结尾，保持它
+    # preserve trailing period if original had one
     if text1.strip().endswith('.'):
         processed1 += '.'
     if text2.strip().endswith('.'):
@@ -881,11 +881,11 @@ def analysis_report(readpath, writepath, baseline_name, col_gt, col_bas, col_pre
         score_llm_wlabel, _, label_llm_wlabel, _, _ = calc_samplelevel_metric(tl, tp, tg)
         score_llm_wlabel_trans, _, label_llm_wlabel_trans, _, _ = calc_samplelevel_metric(tlt, tp, tg)
         '''
-        0: NLG上 pred比baseline好, trans比baseline好 CE上 pred比baseline好, trans比baseline好
-        1: NLG上 pred比baseline差, trans比baseline好 CE上 pred比baseline好, trans比baseline好
-        2: NLG上 pred比baseline好, trans比baseline差 CE上 pred比baseline好, trans比baseline好
-        3: NLG上 pred比baseline好, trans比baseline好 CE上 pred比baseline差, trans比baseline好
-        4: NLG上 pred比baseline好, trans比baseline好 CE上 pred比baseline好, trans比baseline差
+        0: NLG pred>baseline & trans>baseline; CE pred>baseline & trans>baseline
+        1: NLG pred<baseline & trans>baseline; CE pred>baseline & trans>baseline
+        2: NLG pred>baseline & trans<baseline; CE pred>baseline & trans>baseline
+        3: NLG pred>baseline & trans>baseline; CE pred<baseline & trans>baseline
+        4: NLG pred>baseline & trans>baseline; CE pred>baseline & trans<baseline
         '''
 
         bleu1_p, bleu1_baseline, bleu1_t = score_llm_wpred['report']['bleu_1'], score_baseline['report']['bleu_1'], score_llm_wpred_trans['report']['bleu_1']
@@ -1250,7 +1250,7 @@ if __name__ == '__main__':
 
     ## clean
     # df = pd.read_csv(os.environ.get('RESULT_XLSX', str(Path('out.xlsx'))))
-    # # 对gt_report和gpt_output_label列应用clean_report_mimic_cxr函数
+    # # apply clean_report_mimic_cxr to gt_report / gpt_output_label
     # df['gpt_output_pred_clean'] = df['gpt_output_pred'].apply(clean_report_mimic_cxr)
     # df.to_csv(os.environ.get('RESULT_XLSX', str(Path('out.xlsx'))), index=False)
 

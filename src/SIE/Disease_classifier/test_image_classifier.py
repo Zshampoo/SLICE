@@ -19,9 +19,9 @@ from Data_wrapper_chexpert import *
 from Image_classifier import ChexpertClassifier
 from torch.utils.tensorboard import SummaryWriter
 
-from src.SIE.CheXpert_classifier.Data_wrapper_chexpert import Chexpert_Dataset_test
-from src.SIE.CheXpert_classifier.biovil_t.get_image_encoder import ChexpertClassifier_
-from src.SIE.CheXpert_classifier.swin_transformer_classifier import build_model_swintransformer
+from src.SIE.Disease_classifier.Data_wrapper_chexpert import Chexpert_Dataset_test
+from src.SIE.Disease_classifier.biovil_t.get_image_encoder import ChexpertClassifier_
+from src.SIE.Disease_classifier.swin_transformer_classifier import build_model_swintransformer
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s]: %(message)s")
 log = logging.getLogger(__name__)
@@ -117,10 +117,10 @@ def evaluate_cls(preds, preds_probs, y, selected_indices = None):
 
     acc_all = accuracy_score(y.flatten(), preds.flatten())
 
-    # 对每一行检查是否所有标签都预测对了
+    # per-row: whether all labels are predicted correctly
     correct_per_sample = np.all(y == preds, axis=1)  # shape: (n_samples,)
 
-    # 然后求平均
+    # then average
     sample_accuracy = correct_per_sample.mean()
 
     # try:
@@ -278,7 +278,7 @@ def save_persample_result(df, label_names, result, writepath_root, label_selecti
     # logits_array = np.stack(df_result['predicted_logits'].values)
     # logits_tensor = torch.tensor(logits_array, dtype=torch.float32)
     # sigmoid = nn.Sigmoid()
-    # probs = list(sigmoid(logits_tensor).numpy()) # 对应于正类（label=1， abnormal）的置信度分数
+    # probs = list(sigmoid(logits_tensor).numpy())  # positive-class (abnormal) confidence
     # df_result['predicted_abnormal_regions_probs'] = probs
 
     # combination
@@ -611,7 +611,7 @@ if __name__ == '__main__':
     # valid_dataset = Chexpert_Dataset(df_valid, chexlabels)
     test_dataset = Chexpert_Dataset_test(df_test, chexlabels, split='test', root_dir=str(Path(__import__('os').environ.get('DATA_ROOT', './data'))), label_type=LABEL_TYPE)
 
-    # 带权
+    # weighted
     # class_weights = torch.tensor(train_dataset.get_class_weights(), dtype=torch.float32)
 
     class_weights = None
@@ -623,7 +623,7 @@ if __name__ == '__main__':
     # test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
 
     num_classes = len(chexlabels)
-    class_names = chexlabels # _x为chexPert _y为chexBert
+    class_names = chexlabels  # _x = CheXpert, _y = CheXbert
 
     # Loss with class weights
     if class_weights is None:

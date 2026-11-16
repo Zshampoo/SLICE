@@ -337,7 +337,7 @@ def build_compute_metrics(tokenizer):
 def build_trainer(model, tokenizer, train_ds, test_ds, output_dir):
     training_args = Seq2SeqTrainingArguments(
         output_dir=output_dir,
-        eval_strategy="no",  # 这里没有验证集，所以不需要评估
+        eval_strategy="no",  # no validation set in this setup
         learning_rate=Config.learning_rate,
         per_device_train_batch_size=Config.train_batch_size,
         per_device_eval_batch_size=Config.eval_batch_size,

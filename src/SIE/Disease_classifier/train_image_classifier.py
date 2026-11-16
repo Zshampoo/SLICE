@@ -11,12 +11,12 @@ import random
 
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, classification_report, f1_score, jaccard_score, precision_score, recall_score, roc_auc_score
-from src.SIE.CheXpert_classifier.Data_wrapper_chexpert import *
+from src.SIE.Disease_classifier.Data_wrapper_chexpert import *
 # from Image_classifier import ChexpertClassifier
 from torch.utils.tensorboard import SummaryWriter
 
-from src.SIE.CheXpert_classifier.biovil_t.get_image_encoder import ChexpertClassifier_
-from src.SIE.CheXpert_classifier.swin_transformer_classifier import build_model_swintransformer
+from src.SIE.Disease_classifier.biovil_t.get_image_encoder import ChexpertClassifier_
+from src.SIE.Disease_classifier.swin_transformer_classifier import build_model_swintransformer
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s]: %(message)s")
 log = logging.getLogger(__name__)
@@ -340,7 +340,7 @@ def train_Img_classifier(
             # # Get predictions as boolean values
             # preds = preds_probs > 0.5
 
-            # acc, f1, rec, prec, jaccard, auc, metrics_per_label = evaluate_cls(preds, y)  # 训练阶段评估
+            # acc, f1, rec, prec, jaccard, auc, metrics_per_label = evaluate_cls(preds, y)  # train-time eval
 
 
             scaler.scale(loss).backward()
@@ -491,7 +491,7 @@ def label_statistics(df, chexlabels, type=None):
                     label_dict[label][result] = 1
                 else:
                     label_dict[label][result] += 1
-                if result != 0.0: # 非nan 也非0.0
+                if result != 0.0:  # neither nan nor 0.0
                     abnormal_percent[label] += 1
 
     print(f"{type} dataset label distribution (by {LABEL_SELECTION}) (all count {df.shape[0]})")

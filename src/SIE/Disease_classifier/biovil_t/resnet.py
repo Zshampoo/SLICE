@@ -10,7 +10,7 @@ from torch.hub import load_state_dict_from_url
 from torchvision.models.resnet import  ResNet, BasicBlock, Bottleneck
 model_urls = {
     'resnet50': 'https://download.pytorch.org/models/resnet50-0676ba61.pth',
-    # 其他模型可参考 PyTorch 官网
+    # see PyTorch docs for other backbones
 }
 
 TypeSkipConnections = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]

@@ -689,7 +689,7 @@ if __name__ == "__main__":
     # # datasets_as_dfs_train = pd.read_excel('./data/<path>', usecols=usecols, engine='openpyxl')
     # datasets_as_dfs_valid = pd.read_excel('./data/<path>', usecols=usecols, engine='openpyxl')
     # datasets_as_dfs_valid['bbox_coordinates'] = datasets_as_dfs_valid['bbox_coordinates'].apply(ast.literal_eval)
-    # print(torch.__version__)  # PyTorch版本
-    # print(torch.version.cuda)  # PyTorch使用的CUDA版本
-    # print(torch.cuda.get_device_name(0))  # 你的GPU名字
+    # print(torch.__version__)  # PyTorch version
+    # print(torch.version.cuda)  # CUDA version used by PyTorch
+    # print(torch.cuda.get_device_name(0))  # GPU name
     main()

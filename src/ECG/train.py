@@ -26,12 +26,12 @@ transformers.trainer_utils.tqdm = lambda *args, **kwargs: tqdm(*args, disable=Tr
 
 
 def set_seed(seed: int):
-    """设置随机种子，确保训练过程的随机性固定"""
+    """Fix random seeds for reproducibility."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # 如果使用 GPU
-    # 让 CUDA 的可重复性问题得到避免（提高训练的可重复性）
+    torch.cuda.manual_seed_all(seed)  # if using GPU
+    # improve CUDA reproducibility
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
@@ -39,7 +39,7 @@ def set_seed(seed: int):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--smoke", action="store_true",
-                        help="少量样本试跑：验证数据流 + build_trainer_weval + NLG/F1/RadGraph 评估与检查点落盘")
+                        help="smoke run on a few samples: dataflow + build_trainer_weval + NLG/F1/RadGraph + checkpoint")
     parser.add_argument("--smoke-train-n", type=int, default=64)
     parser.add_argument("--smoke-eval-n", type=int, default=32)
     parser.add_argument("--max-steps", type=int, default=-1)
@@ -49,7 +49,7 @@ def main():
                         help="default from Config.save_steps (1000)")
     args, _ = parser.parse_known_args()
 
-    # 设置固定的随机种子
+    # fix random seed
     set_seed(42)
 
     output_dir = Config.output_dir

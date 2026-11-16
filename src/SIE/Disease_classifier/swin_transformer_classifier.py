@@ -4,16 +4,16 @@ from pprint import pprint
 import torch
 from transformers import AutoModel, SwinForImageClassification
 
-from src.SIE.CheXpert_classifier.swin_transformer import SwinTransformer
+from src.SIE.Disease_classifier.swin_transformer import SwinTransformer
 
 def rename_key(hf_key):
-    # Embedding 层
+    # embedding layer
     if hf_key.startswith("embeddings.patch_embeddings.projection."):
         return hf_key.replace("embeddings.patch_embeddings.projection", "patch_embed.proj")
     if hf_key.startswith("embeddings.norm."):
         return hf_key.replace("embeddings.norm", "patch_embed.norm")
 
-    # Encoder 层
+    # encoder layers
     if hf_key.startswith("encoder.layers."):
         key = hf_key.replace("encoder.layers.", "layers.")
         key = key.replace(".layernorm_before.", ".norm1.")
@@ -38,7 +38,7 @@ def build_model_swintransformer():
     if model_type == 'swin':
         model = SwinForImageClassification.from_pretrained(
             str(Path(__import__('os').environ.get('DATA_ROOT', './data'))),
-            num_labels=14,  # 设置你自己的类别数
+            num_labels=14,  # number of disease labels
             ignore_mismatched_sizes=True
         )
         # model = SwinTransformer(img_size=224, # 224
@@ -59,11 +59,11 @@ def build_model_swintransformer():
         #                         use_checkpoint=False,
         #                         num_mlp_heads=3)
         # #### load huging face
-        # # Step 1: 加载 Hugging Face 的 Swin 模型
+        # # Step 1: load Hugging Face Swin
         # hf_model = AutoModel.from_pretrained("./data/<path>")
-        # # Step 2: 获取 state_dict
+        # # Step 2: get state_dict
         # hf_state_dict = hf_model.state_dict()
-        # # Step3. 重命名 Hugging Face 权重并筛选匹配项
+        # # Step 3: rename HF weights and keep matching keys
         # renamed_state_dict = {}
         # for k, v in hf_state_dict.items():
         #     new_k = rename_key(k)
@@ -71,7 +71,7 @@ def build_model_swintransformer():
         #         renamed_state_dict[new_k] = v
         #     else:
         #         print(f"[Unmatched or shape mismatch] {k} -> {new_k}")
-        # # Step 4: 过滤掉分类头
+        # # Step 4: drop classifier head
         # filtered_state_dict = {
         #     k: v for k, v in renamed_state_dict.items()
         #     if k in model.state_dict() and v.shape == model.state_dict()[k].shape
@@ -84,7 +84,7 @@ def build_model_swintransformer():
         # for k in list(model.state_dict().keys())[:10]:
         #     print(k)
         #
-        # # Step 5: 加载权重（strict=False 以容忍不匹配层）
+        # # Step 5: load weights (strict=False to tolerate mismatches)
         # missing, unexpected = model.load_state_dict(filtered_state_dict, strict=False)
         #
         # print("Loaded successfully with:")

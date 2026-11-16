@@ -9,7 +9,7 @@ import argparse
 import os
 from pathlib import Path
 
-from src.ECG.eval_to_ts import predict_and_save_wchexbertinputprompt
+from src.ECG.eval_to_ts import predict_and_save_wevidenceprompt
 
 
 def main():
@@ -42,7 +42,7 @@ def main():
             print(f"skip existing {out_path}")
             continue
         col = args.llmpred_col_template.format(input_type=args.input_type, baseline=baseline)
-        predict_and_save_wchexbertinputprompt(
+        predict_and_save_wevidenceprompt(
             csv_input_path=str(llm_readpath),
             csv_output_path=str(out_path),
             checkpoint_dir=str(cp),

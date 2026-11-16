@@ -40,15 +40,15 @@ def load_model(save_dir, device='cpu'):
 
 
 def load_trained_model(dir):
-    """加载训练好的模型和分词器"""
-    tokenizer = BartTokenizer.from_pretrained(dir)  # 使用训练时保存的tokenizer
-    model = BartForConditionalGeneration.from_pretrained(dir)  # 使用训练时保存的模型
-    model.to(device)  # 将模型移至GPU
-    model.eval()  # 设置为评估模式
+    """Load a trained model and tokenizer from checkpoint_dir."""
+    tokenizer = BartTokenizer.from_pretrained(dir)  # tokenizer saved during training
+    model = BartForConditionalGeneration.from_pretrained(dir)  # model weights saved during training
+    model.to(device)  # move model to device
+    model.eval()  # evaluation mode
     return model, tokenizer
 
 class TextDataset_PROMPT_prompt_BOS(Dataset):
-    """自定义数据集类"""
+    """Simple text dataset wrapper."""
     def __init__(self, texts, tokenizer, max_length=512, prompt=None):
         self.texts = texts
         self.tokenizer = tokenizer
@@ -83,7 +83,7 @@ class TextDataset_PROMPT_prompt_BOS(Dataset):
             }
 
 class TextDataset_wchexbertprompt(Dataset):
-    """自定义数据集类"""
+    """Simple text dataset wrapper."""
     def __init__(self, texts, tokenizer, max_length=512, prompt=None):
         self.texts = texts
         self.tokenizer = tokenizer
@@ -95,7 +95,7 @@ class TextDataset_wchexbertprompt(Dataset):
 
     def __getitem__(self, idx):
         text = clean_report_mimic_cxr(self.texts[idx])
-        # 添加prompt
+        # append prompt tokens
         prompt = self.prompt[idx]
         prompt = ' '.join(prompt) + ' '
         text_new = prompt + text
@@ -117,7 +117,7 @@ class TextDataset_wchexbertprompt(Dataset):
 
 
 class TextDataset(Dataset):
-    """自定义数据集类"""
+    """Simple text dataset wrapper."""
     def __init__(self, texts, tokenizer, max_length=512, w_prompt = False, labels = None):
         self.texts = texts
         self.tokenizer = tokenizer
@@ -145,7 +145,7 @@ def clean_wo_np(report):
     return report
 
 def predict_batch(model, batch, tokenizer):
-    """批量预测函数"""
+    """Batched prediction helper."""
     input_ids = batch['input_ids'].to(device)
     attention_mask = batch['attention_mask'].to(device)
     if 'text_new' in batch:
@@ -155,7 +155,7 @@ def predict_batch(model, batch, tokenizer):
             input_ids=input_ids,
             attention_mask=attention_mask,
             max_length=512,
-            num_beams=4,  # 使用beam search
+            num_beams=4,  # usebeam search
             length_penalty=1.0
         )
 
@@ -167,7 +167,7 @@ def predict_batch(model, batch, tokenizer):
     return predictions
 
 def predict_batch_wprompt(model, batch, tokenizer):
-    """批量预测函数"""
+    """Batched prediction helper."""
     input_ids = batch['input_ids'].to(device)
     attention_mask = batch['attention_mask'].to(device)
     prompt_input_ids = batch['prompt_input_ids'].to(device)
@@ -179,7 +179,7 @@ def predict_batch_wprompt(model, batch, tokenizer):
         #     input_ids=input_ids,
         #     attention_mask=attention_mask,
         #     max_length=512,
-        #     num_beams=4,  # 使用beam search
+        #     num_beams=4,  # usebeam search
         #     length_penalty=1.0
         # )
         # print("input_ids max:", input_ids.max().item(), "prompt_input_ids_max:", prompt_input_ids.max().item(), "vocab_size:", model.bart.config.vocab_size)
@@ -189,9 +189,9 @@ def predict_batch_wprompt(model, batch, tokenizer):
             decoder_input_ids=prompt_input_ids,
             decoder_attention_mask=prompt_attention_mask,
             # max_length=512,
-            num_beams=4,  # 使用beam search
+            num_beams=4,  # usebeam search
             length_penalty=1.0,
-            repetition_penalty=1.0, # 抑制模型在生成时重复同样的 token 或片段，* 1.0	不使用惩罚机制 1.1 - 1.5	常见取值范围，适度抑制重复 > 2.0	非常强烈惩罚，可能影响生成质量
+            repetition_penalty=1.0, # repetition penalty: 1.0=off; 1.1-1.5 typical; >2.0 may hurt quality
             # min_length=100,  # 4.25 Transformers
             max_new_tokens=150,
             eos_token_id=tokenizer.sep_token_id,
@@ -210,8 +210,8 @@ def predict_batch_wprompt(model, batch, tokenizer):
     return predictions
 
 def predict_and_save(csv_input_path, csv_output_path, checkpoint_dir, llmpred_col, transfer_col, batch_size=32):
-    """读取CSV文件，预测gpt列并保存结果到ts列"""
-    # 读取原始CSV文件
+    """Read CSV/XLSX, run ECG generation, write predictions to transfer_col."""
+    # load input table
     if csv_input_path.endswith('.csv'):
         df = pd.read_csv(csv_input_path)
     elif csv_input_path.endswith('.xlsx'):
@@ -220,7 +220,7 @@ def predict_and_save(csv_input_path, csv_output_path, checkpoint_dir, llmpred_co
     # df = pd.read_excel(csv_input_path, engine="openpyxl")
     print("Loading csv.. from {}".format(csv_input_path))
     # df = pd.read_excel(csv_input_path, engine='openpyxl')
-    # 加载训练好的模型
+    # load trained checkpoint
     print("Loading trained model.. from {}".format(checkpoint_dir))
     model, tokenizer = load_trained_model(checkpoint_dir)
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -229,70 +229,25 @@ def predict_and_save(csv_input_path, csv_output_path, checkpoint_dir, llmpred_co
     # tokenizer.add_special_tokens({'bos_token': '[DEC]'})
     # tokenizer.add_tokens(['[BLA]', '[POS]', '[NEG]', '[UNC]'])
     # model.resize_token_embeddings(len(tokenizer))
-    # 创建数据集和数据加载器
+    # build dataset / dataloader
     dataset = TextDataset(df[llmpred_col].tolist(), tokenizer)
     # dataset = TextDataset(df['gpt_output_label_clean'].tolist(), tokenizer)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
-    # 批量预测
+    # batched generation
     all_predictions = []
     print("Generating predictions...")
     for batch in tqdm.tqdm(dataloader):
         predictions = predict_batch(model, batch, tokenizer)
         all_predictions.extend(predictions)
 
-    # 将预测结果保存到DataFrame
+    # write predictions into the dataframe
     # df['transfer_output_pred'] = all_predictions
     # df['transfer_output_pred_clean'] = df['transfer_output'].apply(clean_report_mimic_cxr)
 
     df[transfer_col] = all_predictions
     df[transfer_col + '_clean'] = df[transfer_col].apply(clean_report_mimic_cxr)
-    # 保存新的CSV文件
-    # df.to_excel(csv_output_path, engine= 'openpyxl', index=False)
-    df.to_csv(csv_output_path, index=False)
-    print(f"Predictions saved to {csv_output_path}")
-
-def predict_and_save_wprompt(csv_input_path, csv_output_path, checkpoint_dir, llmpred_col, transfer_col, baseline = 'CMCRL', batch_size=16):
-    """读取CSV文件，预测gpt列并保存结果到ts列"""
-    # 读取原始CSV文件
-    df = pd.read_csv(csv_input_path)
-    print("Loading CSV from {}, len: {}".format(csv_input_path, len(df)))
-    # df = df[:100] # debug
-    # 获取chexbert标注得到的prompt
-    pred_reports = df[f'llm_infer_wlabelinfo_{baseline}'].tolist()
-    pred_reports_clean = [clean_report_mimic_cxr(x) for x in pred_reports]
-    input_labels = label_input_report(pred_reports_clean)
-
-    # 按训练时的标签顺序重组prompt
-    labels_new, prompt_all = rearrange_labels(input_labels, label_cols)
-
-    # 加载训练好的模型
-    print("Loading trained model from {}".format(checkpoint_dir))
-    model, tokenizer = load_trained_model(checkpoint_dir)
-    print("tokenizer length:",len(tokenizer), "vocab_size:", model.config.vocab_size)
-    toks = ['[POS]', '[NEG]','[PROMPT]'] # debug
-    for t in toks:
-        if t in tokenizer.get_vocab():
-            print(f"Token {t} 存在于词表中。")
-
-    # 创建数据集和数据加载器
-    dataset = TextDataset_PROMPT_prompt_BOS(texts=df[llmpred_col].tolist(),
-                          tokenizer=tokenizer,
-                          max_length=512,
-                          prompt=prompt_all)
-
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-
-    # 批量预测
-    all_predictions = []
-    print("Generating predictions...")
-    for batch in tqdm.tqdm(dataloader):
-        predictions = predict_batch_wprompt(model, batch, tokenizer)
-        all_predictions.extend(predictions)
-
-    df[transfer_col] = all_predictions
-    df[transfer_col + '_clean'] = df[transfer_col].apply(clean_report_mimic_cxr)
-    # 保存新的CSV文件
+    # save output table
     # df.to_excel(csv_output_path, engine= 'openpyxl', index=False)
     df.to_csv(csv_output_path, index=False)
     print(f"Predictions saved to {csv_output_path}")
@@ -314,9 +269,9 @@ def rearrange_labels(labels, label_cols):
 
 
 
-def predict_and_save_wchexbertinputprompt(csv_input_path, csv_output_path, checkpoint_dir, llmpred_col, transfer_col, batch_size=16, prompt_col = None):
-    """读取CSV文件，预测gpt列并保存结果到ts列"""
-    # 读取原始CSV文件
+def predict_and_save_wevidenceprompt(csv_input_path, csv_output_path, checkpoint_dir, llmpred_col, transfer_col, batch_size=16, prompt_col = None):
+    """Read CSV/XLSX, run ECG generation, write predictions to transfer_col."""
+    # load input table
     if csv_input_path.endswith('.csv'):
         df = pd.read_csv(csv_input_path)
     elif csv_input_path.endswith('.xlsx'):
@@ -324,14 +279,14 @@ def predict_and_save_wchexbertinputprompt(csv_input_path, csv_output_path, check
 
     print("Loading CSV from {}, len: {}".format(csv_input_path, len(df)))
     # df = df[:100]
-    # 获取chexbert标注得到的prompt
+    # build evidence prompt from CheXbert labels on the input report
     # pred_reports = df[f'llm_infer_wlabelinfo_{baseline}'].tolist()
     if prompt_col is None:
         pred_reports = df[llmpred_col].tolist()
         pred_reports_clean = [clean_report_mimic_cxr(x) for x in pred_reports]
         input_labels = label_input_report(pred_reports_clean)
 
-        # 按训练时的标签顺序重组prompt
+        # reorder prompt tokens to match training label order
         labels_new, prompt_all = rearrange_labels(input_labels, label_cols)
     else:
         df[prompt_col] =  df[prompt_col].apply(ast.literal_eval)
@@ -341,7 +296,7 @@ def predict_and_save_wchexbertinputprompt(csv_input_path, csv_output_path, check
     # df = pd.read_excel(csv_input_path, engine="openpyxl")
 
     # df = pd.read_excel(csv_input_path, engine='openpyxl')
-    # 加载训练好的模型
+    # load trained checkpoint
     print("Loading trained model from {}".format(checkpoint_dir))
     # model, tokenizer, config = load_model(checkpoint_dir, device)
     model, tokenizer = load_trained_model(checkpoint_dir)
@@ -349,11 +304,11 @@ def predict_and_save_wchexbertinputprompt(csv_input_path, csv_output_path, check
     toks = ['[POS]', '[NEG]','[DEC]']
     for t in toks:
         if t in tokenizer.get_vocab():
-            print(f"Token {t} 存在于词表中。")
+            print(f"Token {t} is in the vocabulary.")
     # tokenizer.add_special_tokens({'bos_token': '[DEC]'})
     # tokenizer.add_tokens(['[BLA]', '[POS]', '[NEG]', '[UNC]'])
     # model.resize_token_embeddings(len(tokenizer))
-    # 创建数据集和数据加载器
+    # build dataset / dataloader
     dataset = TextDataset_wchexbertprompt(texts=df[llmpred_col].tolist(),
                           tokenizer=tokenizer,
                           max_length=512,
@@ -361,7 +316,7 @@ def predict_and_save_wchexbertinputprompt(csv_input_path, csv_output_path, check
     # dataset = TextDataset(df['gpt_output_label_clean'].tolist(), tokenizer)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
-    # 批量预测
+    # batched generation
     all_predictions = []
     print("Generating predictions...")
     for batch in tqdm.tqdm(dataloader):
@@ -369,14 +324,14 @@ def predict_and_save_wchexbertinputprompt(csv_input_path, csv_output_path, check
         all_predictions.extend(predictions)
         # break
 
-    # 将预测结果保存到DataFrame
+    # write predictions into the dataframe
     # df['transfer_output_pred'] = all_predictions
     # df['transfer_output_pred_clean'] = df['transfer_output'].apply(clean_report_mimic_cxr)
 
     df[transfer_col] = all_predictions
     df.to_csv(csv_output_path, index=False)
     df[transfer_col + '_clean'] = df[transfer_col].apply(clean_report_mimic_cxr)
-    # 保存新的CSV文件
+    # save output table
     # df.to_excel(csv_output_path, engine= 'openpyxl', index=False)
     df.to_csv(csv_output_path, index=False)
     print(f"Predictions saved to {csv_output_path}")
@@ -385,7 +340,7 @@ def predict_and_save_wchexbertinputprompt(csv_input_path, csv_output_path, check
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="DST prompted transfer inference helper")
+    parser = argparse.ArgumentParser(description="ECG evidence-prompted inference helper")
     parser.add_argument("--input_csv", required=True)
     parser.add_argument("--output_csv", required=True)
     parser.add_argument("--checkpoint_dir", required=True)
@@ -394,7 +349,7 @@ if __name__ == "__main__":
     parser.add_argument("--prompt_col", default=None)
     parser.add_argument("--batch_size", type=int, default=16)
     args = parser.parse_args()
-    predict_and_save_wchexbertinputprompt(
+    predict_and_save_wevidenceprompt(
         csv_input_path=args.input_csv,
         csv_output_path=args.output_csv,
         checkpoint_dir=args.checkpoint_dir,

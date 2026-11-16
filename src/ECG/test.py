@@ -5,7 +5,7 @@ import argparse
 import os
 from pathlib import Path
 
-from src.ECG.eval_to_ts import predict_and_save_wchexbertinputprompt
+from src.ECG.eval_to_ts import predict_and_save_wevidenceprompt
 
 
 def main():
@@ -19,7 +19,7 @@ def main():
     parser.add_argument("--batch_size", type=int, default=16)
     args = parser.parse_args()
 
-    predict_and_save_wchexbertinputprompt(
+    predict_and_save_wevidenceprompt(
         csv_input_path=args.input_csv,
         csv_output_path=args.output_csv,
         checkpoint_dir=args.checkpoint_dir,

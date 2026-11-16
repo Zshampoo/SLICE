@@ -401,7 +401,7 @@ def get_val_losses_and_evaluate_obj_detector_and_binary_classifiers(model, val_d
         if isinstance(computed, torch.Tensor) and computed.numel() == 1:
             region_abnormal_scores[metric] = computed.item()
         else:
-            region_abnormal_scores[metric] = computed  # 保持原样，比如是一个张量 [2] 或 [num_classes]
+            region_abnormal_scores[metric] = computed  # keep as-is (e.g. tensor [2] or [num_classes])
 
     return val_losses_dict, obj_detector_scores, region_abnormal_scores
 
@@ -892,7 +892,7 @@ if __name__ == "__main__":
     # # datasets_as_dfs_train = pd.read_excel('./data/<path>', usecols=usecols, engine='openpyxl')
     # datasets_as_dfs_valid = pd.read_excel('./data/<path>', usecols=usecols, engine='openpyxl')
     # datasets_as_dfs_valid['bbox_coordinates'] = datasets_as_dfs_valid['bbox_coordinates'].apply(ast.literal_eval)
-    # print(torch.__version__)  # PyTorch版本
-    # print(torch.version.cuda)  # PyTorch使用的CUDA版本
-    # print(torch.cuda.get_device_name(0))  # 你的GPU名字
+    # print(torch.__version__)  # PyTorch version
+    # print(torch.version.cuda)  # CUDA version used by PyTorch
+    # print(torch.cuda.get_device_name(0))  # GPU name
     main()

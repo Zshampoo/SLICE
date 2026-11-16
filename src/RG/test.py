@@ -20,7 +20,7 @@ def clean_report_mimic_cxr(report):
 df = pd.read_csv('/data/wuzhiqiang/project/R2Gen/gpt41mini_output_wlabel.csv')
 
 
-# 对gt_report和gpt_output_label列应用clean_report_mimic_cxr函数
+# apply clean_report_mimic_cxr to gt_report / gpt_output_label
 df['gt_report_clean'] = df['gt_report'].apply(clean_report_mimic_cxr)
 df['gpt_output_label_clean'] = df['gpt_output_label'].apply(clean_report_mimic_cxr)
 df.to_csv('/data/wuzhiqiang/project/R2Gen/gpt41mini_output_wlabel_clean.csv', index=False)

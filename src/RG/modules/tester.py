@@ -91,14 +91,14 @@ class Tester(BaseTester):
                 processed_ids = []
                 for img_id in images_id:
                     if isinstance(img_id, torch.Tensor):
-                        processed_ids.append(img_id.item())  # 转成 int
+                        processed_ids.append(img_id.item())  # cast to int
                     elif isinstance(img_id, (list, tuple)):
-                        processed_ids.append(str(img_id))  # 如果是 list/tuple，转成字符串保存
+                        processed_ids.append(str(img_id))  # stringify list/tuple
                     else:
-                        processed_ids.append(img_id)  # 其他类型直接保存
+                        processed_ids.append(img_id)  # keep other types as-is
 
                 test_ids.extend(processed_ids)
-            # 现在 test_ids 里存的就是所有的 images_id
+            # test_ids now stores all image ids
 
             test_met = self.metric_ftns({i: [gt] for i, gt in enumerate(test_gts)},
                                         {i: [re] for i, re in enumerate(test_res)})
@@ -116,7 +116,7 @@ class Tester(BaseTester):
             test_res, test_gts = pd.DataFrame(test_res), pd.DataFrame(test_gts)
             test_res.to_csv(os.path.join(self.save_dir, "res.csv"), index=False, header=False)
             test_gts.to_csv(os.path.join(self.save_dir, "gts.csv"), index=False, header=False)
-            # 写入 CSV
+            # write CSV
             df.to_csv(os.path.join(self.save_dir,'test_results.csv'), index=False)
         return log
 

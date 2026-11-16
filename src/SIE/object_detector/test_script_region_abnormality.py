@@ -284,7 +284,7 @@ def save_persample_result(df, result, writepath_root, writetype='test'):
     logits_array = np.stack(df_result['predicted_abnormal_regions_logits'].values)
     logits_tensor = torch.tensor(logits_array, dtype=torch.float32)
     sigmoid = nn.Sigmoid()
-    probs = list(sigmoid(logits_tensor).numpy()) # 对应于正类（label=1， abnormal）的置信度分数
+    probs = list(sigmoid(logits_tensor).numpy())  # positive-class (abnormal) confidence
     df_result['predicted_abnormal_regions_probs'] = probs
     # combination
     pred_result = df_result['predicted_abnormal_regions'].values.tolist()
@@ -303,7 +303,7 @@ def save_persample_result(df, result, writepath_root, writetype='test'):
             prob = probs[i][no]
             conf = prob if pred == 'Abnormal' else (1 - prob)
             sample_tuple.append([key, pred, conf])
-            # 仅保留检出区域；未检出区域名单独列记录
+            # only keep detected regions; record undetected region names separately
             if not bool(detected_result[i][no]):
                 undetected_names.append(key)
             else:

@@ -186,22 +186,22 @@ def append_knn_columns(df: pd.DataFrame, lookup: pd.DataFrame) -> Tuple[pd.DataF
 
     stats_rows = [
         {
-            "metric": "knn可更新行数",
+            "metric": "knn_updatable_rows",
             "category": "rows",
             "count": int(out[KNN_COLS[0]].notna().sum()),
         },
         {
-            "metric": "实际修改行数",
+            "metric": "rows_modified",
             "category": "rows",
             "count": int(out[MOD_COL].notna().sum()),
         },
         {
-            "metric": "修改元组总数",
+            "metric": "tuples_modified",
             "category": "tuples",
             "count": int(extra_df["_modified_count"].sum()),
         },
         {
-            "metric": "跳过的一致元组数",
+            "metric": "consistent_tuples_skipped",
             "category": "tuples",
             "count": int(extra_df["_skipped_count"].sum()),
         },

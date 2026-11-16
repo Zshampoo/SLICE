@@ -135,10 +135,10 @@ def replace_item(
 ) -> Tuple[List[Any], str]:
     old_status = old_norm_fn(item[1])
     if new_status is None:
-        return list(item), f"基于{scope_label}保留(无knn)"
+        return list(item), f"keep_based_on_{scope_label}(no_knn)"
     if old_status == new_status:
-        return list(item), f"基于{scope_label}保留"
-    return [item[0], to_label_fn(new_status)], f"基于{scope_label}替换"
+        return list(item), f"keep_based_on_{scope_label}"
+    return [item[0], to_label_fn(new_status)], f"replace_based_on_{scope_label}"
 
 
 def merge_knn_sheets(xlsx_path: Path) -> pd.DataFrame:
@@ -194,7 +194,7 @@ def apply_row(
         new_raw = row.get(cfg["disease_col"])
         new_status = norm_dis(new_raw)
         new_item, action = replace_item(
-            item, new_status, dis_to_label, norm_dis, f"{name}疾病"
+            item, new_status, dis_to_label, norm_dis, f"{name}_disease"
         )
         dis_out.append(new_item)
         out[f"disease_knn_action_{name}"] = action
@@ -216,7 +216,7 @@ def apply_row(
         new_raw = row.get(src_col)
         new_status = norm_reg(new_raw)
         new_item, action = replace_item(
-            item, new_status, reg_to_label, norm_reg, f"{name}区域"
+            item, new_status, reg_to_label, norm_reg, f"{name}_region"
         )
         reg_out.append(new_item)
         out[f"region_knn_action_{slug(name)}"] = action
@@ -262,8 +262,8 @@ def apply_row(
         for c in out
         if c.startswith("disease_knn_action_") or c.startswith("region_knn_action_")
     ]
-    any_replaced = any(str(out[c]).endswith("替换") for c in action_cols)
-    out["knn_five_disease_region_none_replaced"] = "否" if any_replaced else "是"
+    any_replaced = any(str(out[c]).startswith("replace_based_on_") for c in action_cols)
+    out["knn_five_disease_region_none_replaced"] = "no" if any_replaced else "yes"
 
     return out
 
@@ -273,20 +273,20 @@ def check_single_pair_consistency(
     region_item: Optional[List[Any]],
 ) -> str:
     if disease_item is None or region_item is None:
-        return "缺失"
+        return "missing"
     d = norm_dis(disease_item[1])
     r = norm_reg(region_item[1])
     if d is None or r is None:
-        return "无效"
+        return "invalid"
     if d == "positive" and r == "abnormal":
-        return "一致(pos-abnormal)"
+        return "consistent(pos-abnormal)"
     if d == "negative" and r == "normal":
-        return "一致(neg-normal)"
+        return "consistent(neg-normal)"
     if d == "positive" and r == "normal":
-        return "不一致(疾病pos区域normal)"
+        return "inconsistent(disease_pos_region_normal)"
     if d == "negative" and r == "abnormal":
-        return "不一致(疾病neg区域abnormal)"
-    return "无效"
+        return "inconsistent(disease_neg_region_abnormal)"
+    return "invalid"
 
 
 def check_pair_consistency(
@@ -299,7 +299,7 @@ def check_pair_consistency(
     out: Dict[str, Any] = {}
 
     if d_item is None:
-        out[f"consistency_{d_key}"] = "缺失疾病元组"
+        out[f"consistency_{d_key}"] = "missing_disease_tuple"
         return out
 
     d = norm_dis(d_item[1])
@@ -312,45 +312,45 @@ def check_pair_consistency(
     if cfg["pair_rule"] == "single":
         r = regions[0][1]
         if d is None or r is None:
-            out[f"consistency_{d_key}"] = "无效"
+            out[f"consistency_{d_key}"] = "invalid"
         elif d == "positive" and r == "abnormal":
-            out[f"consistency_{d_key}"] = "一致(pos-abnormal)"
+            out[f"consistency_{d_key}"] = "consistent(pos-abnormal)"
         elif d == "negative" and r == "normal":
-            out[f"consistency_{d_key}"] = "一致(neg-normal)"
+            out[f"consistency_{d_key}"] = "consistent(neg-normal)"
         else:
-            out[f"consistency_{d_key}"] = "不一致"
+            out[f"consistency_{d_key}"] = "inconsistent"
     elif cfg["pair_rule"] == "both":
         if any(r is None for _, r in regions):
-            out[f"consistency_{d_key}"] = "无效"
+            out[f"consistency_{d_key}"] = "invalid"
         elif d == "positive" and all(r == "abnormal" for _, r in regions):
-            out[f"consistency_{d_key}"] = "一致(pos-双侧abnormal)"
+            out[f"consistency_{d_key}"] = "consistent(pos-both_abnormal)"
         elif d == "negative" and all(r == "normal" for _, r in regions):
-            out[f"consistency_{d_key}"] = "一致(neg-双侧normal)"
+            out[f"consistency_{d_key}"] = "consistent(neg-both_normal)"
         else:
-            out[f"consistency_{d_key}"] = "不一致"
+            out[f"consistency_{d_key}"] = "inconsistent"
     else:  # any
         if any(r is None for _, r in regions):
-            out[f"consistency_{d_key}"] = "无效"
+            out[f"consistency_{d_key}"] = "invalid"
         elif d == "positive" and any(r == "abnormal" for _, r in regions):
-            out[f"consistency_{d_key}"] = "一致(pos-至少一abnormal)"
+            out[f"consistency_{d_key}"] = "consistent(pos-at_least_one_abnormal)"
         elif d == "negative" and all(r == "normal" for _, r in regions):
-            out[f"consistency_{d_key}"] = "一致(neg-双侧normal)"
+            out[f"consistency_{d_key}"] = "consistent(neg-both_normal)"
         else:
-            out[f"consistency_{d_key}"] = "不一致"
+            out[f"consistency_{d_key}"] = "inconsistent"
     return out
 
 
 def build_validation(df: pd.DataFrame) -> pd.DataFrame:
     rows: List[Dict[str, Any]] = []
     n = len(df)
-    rows.append({"scope": "全部", "metric": "样本数", "value": n})
+    rows.append({"scope": "all", "metric": "num_samples", "value": n})
 
     if "knn_five_disease_region_none_replaced" in df.columns:
         for cat, cnt in df["knn_five_disease_region_none_replaced"].value_counts().items():
             rows.append(
                 {
-                    "scope": "全部",
-                    "metric": "五病区域均未替换",
+                    "scope": "all",
+                    "metric": "no_replacement_on_five_disease_regions",
                     "category": cat,
                     "value": int(cnt),
                 }
@@ -361,26 +361,26 @@ def build_validation(df: pd.DataFrame) -> pd.DataFrame:
         act_col = f"disease_knn_action_{disease}"
         if act_col in df.columns:
             acts = df[act_col].astype(str)
-            replaced = int(acts.str.endswith("替换").sum())
-            kept = int(acts.str.endswith("保留").sum())
-            no_knn = int(acts.str.contains("无knn", na=False).sum())
+            replaced = int(acts.str.startswith("replace_based_on_").sum())
+            kept = int(acts.str.startswith("keep_based_on_").sum())
+            no_knn = int(acts.str.contains("no_knn", na=False).sum())
             rows.append(
                 {
                     "scope": disease,
-                    "metric": "疾病替换数",
+                    "metric": "disease_replacements",
                     "value": replaced,
-                    "保留": kept,
-                    "无knn": no_knn,
+                    "kept": kept,
+                    "no_knn": no_knn,
                 }
             )
         for rname, _ in cfg["regions"]:
             ract = f"region_knn_action_{slug(rname)}"
             if ract in df.columns:
-                replaced = int(df[ract].astype(str).str.contains("替换", na=False).sum())
+                replaced = int(df[ract].astype(str).str.startswith("replace_based_on_").sum())
                 rows.append(
                     {
                         "scope": f"{disease}/{rname}",
-                        "metric": "区域替换数",
+                        "metric": "region_replacements",
                         "value": replaced,
                     }
                 )
@@ -390,7 +390,7 @@ def build_validation(df: pd.DataFrame) -> pd.DataFrame:
                 rows.append(
                     {
                         "scope": disease,
-                        "metric": "pair一致性",
+                        "metric": "pair_consistency",
                         "category": cat,
                         "value": int(cnt),
                     }
@@ -403,12 +403,12 @@ def build_validation(df: pd.DataFrame) -> pd.DataFrame:
             pair_col = f"consistency_{d_key}_{slug(rname)}"
             if pair_col not in df.columns:
                 continue
-            ok = int(df[pair_col].astype(str).str.startswith("一致").sum())
+            ok = int(df[pair_col].astype(str).str.startswith("consistent").sum())
             checked = int(df[pair_col].notna().sum())
             rows.append(
                 {
-                    "scope": f"校验/{disease}+{rname}",
-                    "metric": "单区域pair信息一致样本",
+                    "scope": f"check/{disease}+{rname}",
+                    "metric": "single_region_pair_consistent_samples",
                     "value": ok,
                     "checked": checked,
                 }
@@ -416,8 +416,8 @@ def build_validation(df: pd.DataFrame) -> pd.DataFrame:
             for cat, cnt in df[pair_col].value_counts().items():
                 rows.append(
                     {
-                        "scope": f"校验/{disease}+{rname}",
-                        "metric": "单区域pair分布",
+                        "scope": f"check/{disease}+{rname}",
+                        "metric": "single_region_pair_distribution",
                         "category": cat,
                         "value": int(cnt),
                     }
@@ -434,7 +434,7 @@ def process(xlsx_path: Path, out_path: Path) -> None:
 
     src_sheet = next((s for s in ALL_TUPLES_SHEETS if s in sheets), None)
     if src_sheet is None:
-        raise KeyError(f"未找到源 sheet，期望其一: {ALL_TUPLES_SHEETS}")
+        raise KeyError(f"Source sheet not found; expected one of: {ALL_TUPLES_SHEETS}")
 
     base = sheets[src_sheet].copy()
     base["id"] = base["id"].astype(str)
@@ -488,7 +488,7 @@ def process(xlsx_path: Path, out_path: Path) -> None:
             df.to_excel(writer, sheet_name=name[:31], index=False)
 
     print(f"processed rows: {len(out)}")
-    print("\n=== 各疾病疾病信息替换数 ===")
+    print("\n=== Per-disease replacement counts ===")
     for cfg in SHEET_CONFIG.values():
         col = f"disease_knn_action_{cfg['disease']}"
         if col in out.columns:
