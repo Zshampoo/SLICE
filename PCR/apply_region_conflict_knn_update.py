@@ -13,16 +13,14 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import pandas as pd
 
-from apply_region_conflict_mahalanobis_update import (
-    DIS_COL,
-    SRC_COL,
-    format_change_log,
-    get_protected_regions,
-    pair_is_consistent,
+from apply_knn_replacement_test_all import (
+    SHEET_CONFIG,
+    find_item,
+    norm_dis,
+    norm_reg,
     reg_to_label,
     safe_eval_list,
 )
-from apply_knn_replacement_test_all import find_item, norm_reg
 
 DEFAULT_KNN_XLSX = KNN_ROOT / "region_pair_conflict_similarity_results.xlsx"
 DEFAULT_SOURCE_XLSX = KNN_ROOT / "test_source.xlsx"
@@ -35,6 +33,43 @@ KNN_REGION_MAP = {
 }
 KNN_COLS = list(KNN_REGION_MAP.keys())
 KNN_REGIONS = list(KNN_REGION_MAP.values())
+
+SRC_COL = "pred_region_info_15w_knn_new"
+DIS_COL = "pred_disease_info_chexber_uone_15w_knn_new"
+
+REGION_TO_DISEASE = {}
+for _cfg in SHEET_CONFIG.values():
+    for _rname, _ in _cfg["regions"]:
+        REGION_TO_DISEASE[_rname] = _cfg["disease"]
+
+
+def format_change_log(old_item, new_item) -> str:
+    return f"changed {list(old_item)} to {list(new_item)}"
+
+
+def pair_is_consistent(d_item, r_item) -> bool:
+    if d_item is None or r_item is None:
+        return False
+    d = norm_dis(d_item[1])
+    r = norm_reg(r_item[1])
+    if d is None or r is None:
+        return False
+    return (d == "positive" and r == "abnormal") or (d == "negative" and r == "normal")
+
+
+def get_protected_regions(row, reg_info):
+    """Regions already disease-region consistent under the five-disease KNN mapping."""
+    protected = set()
+    dis_info = safe_eval_list(row.get(DIS_COL))
+    for region_name in KNN_REGIONS:
+        disease = REGION_TO_DISEASE.get(region_name)
+        if disease is None:
+            continue
+        d_item = find_item(dis_info, disease)
+        r_item = find_item(reg_info, region_name)
+        if pair_is_consistent(d_item, r_item):
+            protected.add(region_name)
+    return protected
 
 OUT_COL = "pred_region_info_15w_knn_new_region_conflicts_knn"
 OUT_CHANGE_LOG_COL = "region_conflict_knn_change_log"

@@ -19,12 +19,38 @@ import faiss
 import numpy as np
 import pandas as pd
 
-from compute_cardiomegaly_pattern_similarity import (
-    GT_COL,
-    GPT_PRED_COL,
-    metrics_binary,
-    norm_gt,
-)
+GT_COL = "gt_report_clean_Cardiomegaly"
+GPT_PRED_COL = "gpt_pred_15w_clean_Cardiomegaly"
+
+
+def norm_gt(v: Any) -> Optional[str]:
+    if v is None or (isinstance(v, float) and np.isnan(v)):
+        return None
+    s = str(v).strip().lower()
+    if s in ("negative", "blank"):
+        return "negative"
+    if s in ("positive", "uncertain"):
+        return "positive"
+    return None
+
+
+def metrics_binary(y_true: pd.Series, y_pred: pd.Series) -> Dict[str, Any]:
+    mask = y_true.notna() & y_pred.notna()
+    yt = y_true[mask]
+    yp = y_pred[mask]
+    n = int(len(yt))
+    if n == 0:
+        return {"n": 0, "accuracy": np.nan, "f1": np.nan, "TP": 0, "FP": 0, "TN": 0, "FN": 0}
+    tp = int(((yt == "positive") & (yp == "positive")).sum())
+    fp = int(((yt == "negative") & (yp == "positive")).sum())
+    tn = int(((yt == "negative") & (yp == "negative")).sum())
+    fn = int(((yt == "positive") & (yp == "negative")).sum())
+    acc = (tp + tn) / n
+    prec = tp / (tp + fp) if (tp + fp) else 0.0
+    rec = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = 2 * prec * rec / (prec + rec) if (prec + rec) else 0.0
+    return {"n": n, "accuracy": acc, "f1": f1, "TP": tp, "FP": fp, "TN": tn, "FN": fn}
+
 
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
 # PCR — KNN retrieval & disease–region conflict resolution
 
-PCR retrieves disease-pattern neighbors and resolves disease–region conflicts before **LRO** / **ECG**.
+PCR retrieves disease-pattern neighbors with **KNN only** and resolves disease–region conflicts before **LRO** / **ECG**. Non-KNN similarity methods (cosine / Mahalanobis) are not included.
 
 ```bash
 export PYTHONPATH=/path/to/SLICE   # if importing shared utils
@@ -17,11 +17,11 @@ python apply_chexpertplus_conflict5_info_replace.py --xlsx ...
 
 Core scripts:
 
-- `compute_disease_pattern_knn.py` / `compute_cardiomegaly_pattern_similarity.py`
-- `apply_knn_replacement_test_all.py`
-- `apply_region_conflict_knn_update.py` (+ Mahalanobis variant)
-- `apply_rexgradient_conflict5_knn.py`
-- `apply_chexpertplus_conflict5_info_replace.py`
+- `compute_disease_pattern_knn.py` — FAISS KNN over disease-pattern train clusters
+- `apply_knn_replacement_test_all.py` — apply KNN disease/region replacements
+- `apply_region_conflict_knn_update.py` — region conflict updates from KNN predictions
+- `apply_rexgradient_conflict5_knn.py` / `apply_chexpertplus_conflict5_info_replace.py` — conflict-5 KNN info replace
 - `disease-region-mapping.txt` — disease ↔ region pairs for conflict rules
+- `knn_unmodified_txt_utils.py` / `paths.py` — shared helpers
 
 Defaults read/write under `$KNN_ROOT`.

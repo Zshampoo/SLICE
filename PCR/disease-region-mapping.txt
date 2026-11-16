@@ -1,36 +1,36 @@
 DIS_REG_mapping = {
-    # ‘关联明确’
-    'Enlarged Cardiomediastinum': ['mediastinum', 'upper mediastinum'], # 嵌套结构，mediastinum 包括 upper mediastinum
+    # Strong disease–region associations
+    'Enlarged Cardiomediastinum': ['mediastinum', 'upper mediastinum'],  # nested: mediastinum includes upper mediastinum
     'Cardiomegaly':['cardiac silhouette'],
-    'Edema':['right hilar structures', 'left hilar structures'], # 对称结构，需要两个结构同时异常或正常
+    'Edema':['right hilar structures', 'left hilar structures'],  # symmetric: both sides should agree
     'Pneumothorax':['right apical zone', 'left apical zone'],
     'Pleural Effusion':['right costophrenic angle','left costophrenic angle'],
-    'Atelectasis':['right lower lung zone', 'left lower lung zone'], 
-    # ‘关联不明确’
+    'Atelectasis':['right lower lung zone', 'left lower lung zone'],
+    # Weaker / multi-region associations
     'Fracture': ['right clavicle', 'left clavicle', 'spine'],
-    'Consolidation':['right mid lung zone', 'left mid lung zone', 'right lower lung zone', 'left lower lung zone', 'left lung', 'right lung'], #
-    'Pneumonia': ['right mid lung zone', 'left mid lung zone', 'right lower lung zone', 'left lower lung zone', 'left lung', 'right lung'], #
+    'Consolidation':['right mid lung zone', 'left mid lung zone', 'right lower lung zone', 'left lower lung zone', 'left lung', 'right lung'],
+    'Pneumonia': ['right mid lung zone', 'left mid lung zone', 'right lower lung zone', 'left lower lung zone', 'left lung', 'right lung'],
     'Lung Opaicty':['right mid lung zone', 'left mid lung zone', 'right lower lung zone', 'left lower lung zone',
-                    'right apical zone', 'left apical zone','right hilar structures', 'left hilar structures', 'left lung', 'right lung'], #
+                    'right apical zone', 'left apical zone','right hilar structures', 'left hilar structures', 'left lung', 'right lung'],
     'Lung Lesion':['right mi lung zone', 'left mid lung zone', 'right lower lung zone', 'left lower lung zone',
                    'right upper lung zone', 'left upper lung zone', 'right apical zone', 'left apical zone',
-                   'right hilar structures', 'left hilar structures', 'left lung', 'right lung'], #
+                   'right hilar structures', 'left hilar structures', 'left lung', 'right lung'],
     'Pleural Other':['right apical zone', 'left apical zone', 'right costophrenic angle','left costophrenic angle', 'left lung', 'right lung'],
     # 'No Finding':[],
     # 'Support Devices':[],
 }
 
 DIS_REG_mapping_restrict = {
-    'Enlarged Cardiomediastinum': ['mediastinum', 'upper mediastinum'], # 嵌套结构，mediastinum 包括 upper mediastinum
+    'Enlarged Cardiomediastinum': ['mediastinum', 'upper mediastinum'],  # nested: mediastinum includes upper mediastinum
     'Cardiomegaly':['cardiac silhouette'],
-    'Edema':['right hilar structures', 'left hilar structures'], # 对称结构，需要两个结构同时异常或正常
+    'Edema':['right hilar structures', 'left hilar structures'],  # symmetric: both sides should agree
     'Pneumothorax':['right apical zone', 'left apical zone'],
     'Pleural Effusion':['right costophrenic angle','left costophrenic angle'],
 }
 DIS_REG_rule_restrict = {
-    'Enlarged Cardiomediastinum': "'mediastinum'和'upper mediastinum'都为normal时，疾病为negative；两者都为abnormal时疾病为positive；'mediastinum'为abnormal，'upper mediastinum'为normal时，疾病为positive；'mediastinum'为normal，'upper mediastinum'为abnormal时，保留pred_{疾病}的结果"
-    'Cardiomegaly':"'cardiac silhouette'为normal时疾病为negative，为abnormal时疾病为positive"
-    'Edema':"'left hilar structures'和'right hilar structures'都为normal时，疾病为negative；两者都为abnormal时疾病为positive；其余情况保留pred_{疾病}的结果"
-    'Pneumothorax':"'left apical zone'和'right apical zone'都为normal时，疾病为negative；两者都为abnormal时疾病为positive；其余情况保留pred_{疾病}的结果"
-    'Pleural Effusion':"'right costophrenic angle'和'left costophrenic angle'都为normal时，疾病为negative；两者都为abnormal时疾病为positive；其余情况保留pred_{疾病}的结果",
+    'Enlarged Cardiomediastinum': "If both 'mediastinum' and 'upper mediastinum' are normal -> disease negative; both abnormal -> disease positive; mediastinum abnormal & upper mediastinum normal -> disease positive; mediastinum normal & upper mediastinum abnormal -> keep pred_{disease}",
+    'Cardiomegaly': "If 'cardiac silhouette' is normal -> disease negative; if abnormal -> disease positive",
+    'Edema': "If both 'left hilar structures' and 'right hilar structures' are normal -> disease negative; both abnormal -> disease positive; otherwise keep pred_{disease}",
+    'Pneumothorax': "If both 'left apical zone' and 'right apical zone' are normal -> disease negative; both abnormal -> disease positive; otherwise keep pred_{disease}",
+    'Pleural Effusion': "If both 'right costophrenic angle' and 'left costophrenic angle' are normal -> disease negative; both abnormal -> disease positive; otherwise keep pred_{disease}",
 }
