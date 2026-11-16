@@ -20,5 +20,7 @@ Pillow>=10.0
 evaluate>=0.4
 pycocoevalcap>=1.2
 faiss-cpu>=1.7
-# optional (RadGraph F1 in LLM_test_cal / trainer):
+
+# EVAL optional (Overall / RadGraph / BertScore)
 # radgraph
+# bert_score

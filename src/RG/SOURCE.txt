@@ -1,0 +1,3 @@
+Upstream: https://github.com/zhjohnchan/R2Gen (EMNLP-2020)
+Vendored into SLICE as the default report generator (RG).
+Weights / datasets are not included; follow the upstream README.

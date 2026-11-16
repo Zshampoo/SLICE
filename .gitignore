@@ -11,8 +11,8 @@ data/
 *.ckpt
 *.xlsx
 *.csv
-!src/CheXbert/src/sample_reports.csv
-!src/CheXbert/src/labeled_reports.csv
+!src/EVAL/factual_accuracy/CheXbert/src/sample_reports.csv
+!src/EVAL/factual_accuracy/CheXbert/src/labeled_reports.csv
 .DS_Store
 runs/
 outputs/

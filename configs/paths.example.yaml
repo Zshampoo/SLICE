@@ -4,23 +4,31 @@ data_root: ./data
 
 images:
   mimic_cxr_jpg: ${data_root}/mimic-cxr-jpg
+  chest_imagenome: ${data_root}/chest-imagenome
+  chexpert_plus: ${data_root}/chexpert-plus
+  rexgradient: ${data_root}/rexgradient
 
 annotations:
   object_detector: ${data_root}/annotations/object_detector
   image_classifier: ${data_root}/annotations/image_classifier
-  transfer: ${data_root}/transfer
+  transfer: ${data_root}/transfer   # ECG train/eval CSVs
 
 weights:
   chexbert: ${data_root}/weights/chexbert.pth
   biovil: ${data_root}/weights/biovil
   bart: facebook/bart-large   # or a local mirror
+  radgraph_xl: ${data_root}/weights/radgraph-xl
 
 runs:
-  image_classifier: ${data_root}/runs/image_classifier
-  region_abnormality: ${data_root}/runs/region_abnormality
-  transfer_dst: ${data_root}/runs/transfer_dst
+  image_classifier: ${data_root}/runs/image_classifier      # SIE
+  region_abnormality: ${data_root}/runs/region_abnormality  # SIE
+  ecg: ${data_root}/runs/ecg                                # ECG
+  r2gen: ${data_root}/runs/r2gen                            # RG
 
-llm:
+knn:
+  root: ${data_root}/knn                                    # PCR
+
+lro:
   # Never commit real keys. Export instead:
   #   export OPENAI_API_KEY=...
   #   export OPENAI_BASE_URL=https://api.openai.com/v1
